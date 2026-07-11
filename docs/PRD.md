@@ -346,6 +346,8 @@ O jogador deve configurar separadamente ganhos comuns e o momento em que uma per
 - Reload, logout ou desconexão devem pausar os contadores com segurança.
 - O tempo acumulado desde o último ganho pode continuar na sessão seguinte.
 - Um ganho associa ao evento o tempo ativo e o tempo decorrido acumulados desde o ganho anterior observado.
+- Aplicar consumíveis, melhorias temporárias ou encantamentos e trocar equipamento que modifica uma profissão não inicia o cronômetro dessa profissão.
+- Bônus temporários e de equipamento podem ser exibidos como contexto, mas não são ganhos permanentes e não criam entradas de progressão no log.
 
 ### 13.2 Perícias de ataque
 

@@ -599,6 +599,10 @@ Uma janela iniciada com Espadas nunca pode continuar acumulando depois da troca 
 
 ## 13. Rastreamento de profissões
 
+Modificadores de profissão formam um eixo separado da atividade. Consumíveis, melhorias aplicadas a ferramentas, encantamentos, equipamentos e buffs podem alterar `temporary` ou `modifier`, inclusive em vários graus, mas suas magias de aplicação não ativam o `ProfessionTracker`.
+
+O `SkillScanner` atualiza esses campos para o tooltip e demais contextos visuais. Uma alteração apenas em `temporary` ou `modifier` não muda a cor de progresso, não cria `gainEvent` e não entra no tempo ativo. O tracker exige sempre a ação real de produção, coleta ou Pesca; proximidade temporal e relação temática com a profissão não bastam.
+
 ### 13.1 Contexto de produção
 
 Para o cliente clássico, o tracker usa a janela ativa e funções clássicas, como `GetTradeSkillLine()` e `GetCraftDisplaySkillLine()`, encapsuladas e testadas antes do uso.
@@ -745,7 +749,7 @@ O período canalizado e a espera pelo loot fazem parte do tempo ativo. Serão co
 
 O ID da ação é dependente do grau aprendido: `33095` foi observado no personagem com Pesca `325/375` e resolvido pelo cliente como `Fishing`, enquanto `7620` é apenas uma referência de grau inicial e não serve como ID universal. O tracker deverá reconhecer a ação principalmente pelo nome localizado resolvido pelo cliente e associado à linha `secondary.fishing`; IDs validados podem ser mantidos como evidência diagnóstica e otimização, nunca como lista universal presumida.
 
-O ciclo separado com `spellID = 45731` foi identificado como a aplicação do item `Sharpened Fish Hook`, que concede `+100` de Pesca por `10` minutos quando aplicado à vara. Trata-se de uma melhoria de equipamento, não de uma tentativa de Pesca, e deve ser explicitamente ignorado pelo cronômetro. A proximidade temporal com um lançamento nunca é suficiente para classificar uma magia auxiliar como atividade da profissão.
+O ciclo separado com `spellID = 45731` foi identificado como a aplicação do item `Sharpened Fish Hook`, que concede `+100` de Pesca por `10` minutos quando aplicado à vara. Trata-se de uma melhoria de equipamento, não de uma tentativa de Pesca, e deve ser ignorado pelo cronômetro segundo a regra geral de modificadores. O mesmo vale para outros itens, graus de melhoria e efeitos equivalentes de Pesca ou de qualquer outra profissão.
 
 ### 13.7 Ganho desacoplado da tentativa
 

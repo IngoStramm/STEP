@@ -593,6 +593,8 @@ O usuário confirmou que `45731` pertence ao item `Sharpened Fish Hook`, aplicad
 
 Consequência: o tracker deve aceitar como tentativa apenas o ciclo canalizado cuja magia é resolvida como a linha de Pesca. `45731` e outras aplicações de melhorias na vara ficam fora do cronômetro, ainda que sejam usadas imediatamente antes de pescar.
 
+O usuário confirmou que existem diversos itens com graus diferentes de melhoria de Pesca e efeitos equivalentes para outras profissões. A decisão foi generalizada: STEP não manterá uma lista de exceções usada como fundamento do tracker. Magias de consumíveis, ferramentas, encantamentos, equipamentos ou buffs que apenas modificam a perícia são excluídas por categoria; somente a ação real da profissão inicia atividade.
+
 ### Evidências
 
 - `WoWScrnShot_071126_140956.jpg`: falha inicial, ciclo auxiliar e primeira captura concluída.
@@ -614,5 +616,6 @@ Arquivos originais em `World of Warcraft/_anniversary_/Screenshots/`.
 | `SUCCEEDED` como encerramento | Rejeitado; ocorre no início do canal. |
 | Tentativa com `UNIT_SPELLCAST_FAILED` | Observada. |
 | Nome e função de `45731` | Validado como aplicação de `Sharpened Fish Hook`; excluído das tentativas. |
+| Regra para outros modificadores de profissão | Definida genericamente; alteração de `temporary`/`modifier` ainda requer validação no cliente. |
 | Cancelamento deliberado | Pendente de distinção. |
 | Timeout sem interação | Pendente. |
