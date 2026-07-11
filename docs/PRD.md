@@ -7,9 +7,10 @@
 | Produto | STEP — Skill Training & Evolution Panel |
 | Cliente-alvo | World of Warcraft Anniversary / Burning Crusade Classic 2.5.6 |
 | Interface-alvo | 20506 |
-| Versão do documento | 1.0 |
+| Versão do documento | 1.1 |
 | Status | Aprovado como baseline funcional |
 | Data da aprovação | 2026-07-11 |
+| Última atualização | 2026-07-11 |
 | Idioma canônico | Português do Brasil |
 
 ## 1. Resumo do produto
@@ -292,6 +293,20 @@ Devem existir controles em massa por categoria:
 - Ativar ou desativar logs.
 - Ativar ou desativar notificações.
 - Restaurar padrões da categoria.
+
+Cada categoria deve formar um bloco visual autônomo. O bloco deve repetir os
+cabeçalhos `Perícia`, `Visibilidade`, `Registro no log` e `Notificações`, manter
+os controles em massa alinhados às respectivas colunas e possuir espaçamento
+suficiente para não parecer unido à categoria seguinte.
+
+Os checkboxes individuais de log e notificação devem possuir tooltip explicando
+que continuam funcionando mesmo quando a perícia estiver oculta no painel. O
+controle `Restaurar padrões` deve permanecer visualmente associado ao título da
+categoria, sem disputar espaço com os seletores em massa.
+
+Presets, restauração de padrões e ações em massa só devem pedir confirmação
+quando substituírem escolhas personalizadas. A confirmação deve informar a
+quantidade de escolhas que será substituída antes de aplicar a alteração.
 
 ## 11. Tooltips
 

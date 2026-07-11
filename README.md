@@ -21,6 +21,10 @@ The Phase 1 data core is implemented and validated in game. **Phase 2** now incl
 - `/step show|hide|lock|reset` — Control visibility, movement lock, and position.
 - `/step config` — Open the movable standalone configuration window.
 - `/step options` — Open STEP in the game's AddOns settings.
+- `/step preset weapons|professions|complete|empty` — Apply a preset, with confirmation before customized choices are replaced.
+- `/step category combat|primary|secondary visibility expanded|compact|hidden` — Change visibility for one learned-skill category.
+- `/step category combat|primary|secondary log|notify on|off` — Change logging or notifications for one category.
+- `/step category combat|primary|secondary reset` — Restore the category defaults.
 - `/step help` — List commands.
 - `/step status` — Show diagnostic state.
 - `/step scan` — Scan learned skills.

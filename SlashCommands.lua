@@ -6,6 +6,7 @@ local function PrintHelp()
     STEP:Print(STEP:GetText("HELP_PANEL_STATE"))
     STEP:Print(STEP:GetText("HELP_PANEL_LOCK"))
     STEP:Print(STEP:GetText("HELP_CONFIG"))
+    STEP:Print(STEP:GetText("HELP_BULK"))
     STEP:Print(STEP:GetText("HELP_STATUS"))
     STEP:Print(STEP:GetText("HELP_SCAN"))
     STEP:Print(STEP:GetText("HELP_DEBUG"))
@@ -19,13 +20,89 @@ local function PrintHelp()
     STEP:Print(STEP:GetText("HELP_CONFIG_STATE"))
 end
 
-local function SplitCommand(message)
+local SplitCommand
+local ParseOnOff
+
+local presetAliases = {
+    weapons = "weapons",
+    armas = "weapons",
+    professions = "professions",
+    profissoes = "professions",
+    complete = "complete",
+    completo = "complete",
+    empty = "empty",
+    vazio = "empty",
+}
+
+local categoryAliases = {
+    combat = "combat",
+    combate = "combat",
+    primary = "primary",
+    primaria = "primary",
+    secondary = "secondary",
+    secundaria = "secondary",
+}
+
+local visibilityAliases = {
+    expanded = "expanded",
+    expandido = "expanded",
+    compact = "compact",
+    compacto = "compact",
+    hidden = "hidden",
+    oculto = "hidden",
+    oculta = "hidden",
+}
+
+local function HandlePreset(rest)
+    local preset = presetAliases[STEP.Util:Trim(rest or ""):lower()]
+    if not preset then
+        STEP:Print(STEP:GetText("INVALID_COMMAND"))
+        return
+    end
+    STEP.OptionsControls:RequestPreset(preset)
+end
+
+local function HandleCategory(rest)
+    local categoryName, operationRest = SplitCommand(rest)
+    local operation, value = SplitCommand(operationRest)
+    local category = categoryAliases[categoryName]
+    if not category then
+        STEP:Print(STEP:GetText("INVALID_COMMAND"))
+        return
+    end
+
+    if operation == "visibility" or operation == "visibilidade" then
+        local visibility = visibilityAliases[value]
+        if visibility then
+            STEP.OptionsControls:RequestCategory(category, "visibility", visibility)
+            return
+        end
+    elseif operation == "log" then
+        local enabled = ParseOnOff(value)
+        if enabled ~= nil then
+            STEP.OptionsControls:RequestCategory(category, "log", enabled)
+            return
+        end
+    elseif operation == "notify" or operation == "notificar" then
+        local enabled = ParseOnOff(value)
+        if enabled ~= nil then
+            STEP.OptionsControls:RequestCategory(category, "notify", enabled)
+            return
+        end
+    elseif operation == "reset" or operation == "padrao" then
+        STEP.OptionsControls:RequestCategory(category, "reset")
+        return
+    end
+    STEP:Print(STEP:GetText("INVALID_COMMAND"))
+end
+
+SplitCommand = function(message)
     local trimmed = STEP.Util:Trim(message or "") or ""
     local command, rest = trimmed:match("^(%S+)%s*(.-)$")
     return command and command:lower() or "", rest or ""
 end
 
-local function ParseOnOff(value)
+ParseOnOff = function(value)
     local normalized = STEP.Util:Trim(value or ""):lower()
     if normalized == "on" then
         return true
@@ -124,6 +201,10 @@ local function HandleSlashCommand(message)
         STEP.ConfigWindow:Open()
     elseif command == "options" then
         STEP.NativeOptions:Open()
+    elseif command == "preset" then
+        HandlePreset(rest)
+    elseif command == "category" or command == "categoria" then
+        HandleCategory(rest)
     else
         STEP:Print(STEP:GetText("INVALID_COMMAND"))
     end

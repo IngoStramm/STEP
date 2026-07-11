@@ -124,10 +124,89 @@ Após o combate, o painel retornou automaticamente às oito perícias expandidas
 
 Arquivos originais em `World of Warcraft/_anniversary_/Screenshots/`.
 
+## Rodada 3 — Presets, ações em massa e refinamento da configuração
+
+| Campo | Valor |
+| --- | --- |
+| Data | 2026-07-11 |
+| Build | `0.2.0-alpha` |
+| Idioma observado | `enUS` |
+| Classe observada | Paladino |
+| Resultado geral | Aprovado |
+
+### Presets e confirmação de sobrescrita
+
+Foram validados os quatro presets e a contagem das escolhas personalizadas que
+seriam substituídas. A confirmação foi exibida acima da janela independente e
+nenhuma alteração ocorreu antes do aceite.
+
+- `Weapons` restaurou as seis perícias de armas elegíveis, manteve Defesa e
+  Desarmado ocultos e sincronizou visibilidade, log e notificação;
+- `Professions` exibiu apenas as quatro profissões aprendidas;
+- `Complete` exibiu seis armas e quatro profissões, totalizando dez linhas;
+- `Start empty` ocultou todas as linhas, fechou o painel vazio e preservou o
+  acesso por `/step config` e pelas opções do jogo.
+
+As contagens observadas coincidiram com os campos efetivamente personalizados:
+30 ao trocar de `Professions` para `Weapons`, 12 antes de `Start empty` e 18 ao
+restaurar `Weapons` por comando depois do estado vazio.
+
+### Ações em massa por categoria
+
+Os seletores em massa alteraram visibilidade, log e notificações de forma
+independente. `Combat Skills` foi colocado em `Compact and expanded` sem alterar
+os checkboxes; Defesa e Desarmado apareceram imediatamente e foram removidos ao
+restaurar os padrões.
+
+Também foi validada a paridade por comandos:
+
+```text
+/step preset weapons
+/step category secondary visibility compact
+/step category secondary reset
+```
+
+O primeiro comando restaurou as seis armas após uma confirmação de 18 escolhas.
+O segundo adicionou `Cooking` e `First Aid` sem confirmação, elevando o resumo
+de seis para oito perícias. O reset informou duas escolhas personalizadas e,
+após confirmação, retornou o painel às seis armas.
+
+### Legibilidade da configuração
+
+O layout final trata cada categoria como um bloco autônomo:
+
+- título da categoria e botão `Defaults` na mesma faixa;
+- cabeçalhos `Skill`, `Visibility`, `Progress log` e `Notifications` repetidos;
+- seletores em massa alinhados exatamente às colunas correspondentes;
+- espaço entre o cabeçalho, os controles e a categoria seguinte;
+- tooltips funcionais nos checkboxes individuais de log e notificação;
+- área de interação dos checkboxes limitada à coluna correta.
+
+Os tooltips confirmaram que log e notificações continuam independentes da
+visibilidade da perícia.
+
+### Evidências
+
+- `WoWScrnShot_071126_191853.jpg`: confirmação de 30 escolhas do preset de armas.
+- `WoWScrnShot_071126_191925.jpg`: preset de armas aplicado.
+- `WoWScrnShot_071126_192014.jpg`: ação em massa de visibilidade em combate.
+- `WoWScrnShot_071126_192207.jpg`: confirmação ao restaurar padrões de combate.
+- `WoWScrnShot_071126_193850.jpg`: blocos, colunas e espaçamentos finais.
+- `WoWScrnShot_071126_194420.jpg`: tooltip de registro no log.
+- `WoWScrnShot_071126_194427.jpg`: tooltip de notificações.
+- `WoWScrnShot_071126_194524.jpg`: preset completo com dez perícias.
+- `WoWScrnShot_071126_194609.jpg`: confirmação do preset vazio.
+- `WoWScrnShot_071126_194641.jpg`: estado vazio aplicado e mensagem de acesso.
+- `WoWScrnShot_071126_194722.jpg`: confirmação de 18 escolhas pelo comando.
+- `WoWScrnShot_071126_194910.jpg`: preset de armas aplicado pelo comando.
+- `WoWScrnShot_071126_194956.jpg`: profissões secundárias habilitadas por comando.
+- `WoWScrnShot_071126_195037.jpg`: confirmação de duas escolhas no reset.
+- `WoWScrnShot_071126_195110.jpg`: reset aplicado e painel novamente com seis armas.
+
+Arquivos originais em `World of Warcraft/_anniversary_/Screenshots/`.
+
 ## Pendências da Fase 2
 
-- ações em massa por categoria;
-- presets e confirmação de sobrescrita;
 - testes visuais das opções de ordenação e ocultação de perícias completas;
 - refinamentos visuais que surgirem nos próximos testes;
 - notificações visuais e sonoras de ganho de perícia.

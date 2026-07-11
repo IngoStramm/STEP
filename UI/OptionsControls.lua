@@ -9,7 +9,8 @@ STEP.OptionsControls = OptionsControls
 
 local CONTENT_WIDTH = 680
 local SKILL_ROW_HEIGHT = 28
-local CATEGORY_HEIGHT = 22
+local CATEGORY_HEIGHT = 90
+local CATEGORY_GAP = 14
 
 local categoryOrder = {
     "combat",
@@ -51,6 +52,13 @@ local notificationTextKeys = {
     none = "OPTION_NOTIFY_NONE",
 }
 
+local presetTextKeys = {
+    weapons = "PRESET_WEAPONS",
+    professions = "PRESET_PROFESSIONS",
+    complete = "PRESET_COMPLETE",
+    empty = "PRESET_EMPTY",
+}
+
 local function CreateText(parent, text, template)
     local font = parent:CreateFontString(nil, "OVERLAY", template or "GameFontHighlight")
     font:SetText(text or "")
@@ -63,6 +71,7 @@ local function SetCheckLabel(check, label)
         if check.Text then
             check.Text:SetText("")
         end
+        check:SetHitRectInsets(-8, -8, -5, -5)
         return
     end
     if check.Text then
@@ -74,7 +83,7 @@ local function SetCheckLabel(check, label)
     check:SetHitRectInsets(0, -190, 0, 0)
 end
 
-local function CreateCheck(parent, label, getter, setter)
+local function CreateCheck(parent, label, getter, setter, tooltip)
     local check = CreateFrame("CheckButton", nil, parent, "InterfaceOptionsCheckButtonTemplate")
     SetCheckLabel(check, label)
     check.getter = getter
@@ -82,6 +91,21 @@ local function CreateCheck(parent, label, getter, setter)
     check:SetScript("OnClick", function(self)
         self.setter(self:GetChecked() and true or false)
     end)
+    if tooltip and tooltip ~= "" then
+        check:SetScript("OnEnter", function(self)
+            if GameTooltip then
+                GameTooltip:SetOwner(self, "ANCHOR_CURSOR")
+                GameTooltip:ClearLines()
+                GameTooltip:AddLine(tooltip, 1, 1, 1, true)
+                GameTooltip:Show()
+            end
+        end)
+        check:SetScript("OnLeave", function()
+            if GameTooltip then
+                GameTooltip:Hide()
+            end
+        end)
+    end
     function check:Refresh()
         self:SetChecked(self.getter() and true or false)
     end
@@ -155,6 +179,133 @@ function OptionsControls:CreateEnumSelector(parent, prefix, width, values, gette
     return control
 end
 
+function OptionsControls:CreateActionSelector(parent, prefix, width, labelKey, items, handler)
+    local control = {}
+    local label = STEP:GetText(labelKey)
+
+    if UIDropDownMenu_Initialize
+        and UIDropDownMenu_CreateInfo
+        and UIDropDownMenu_AddButton
+        and UIDropDownMenu_SetWidth
+        and UIDropDownMenu_SetText then
+        local name = self:GetUniqueName(prefix)
+        local ok, dropdown = pcall(CreateFrame, "Frame", name, parent, "UIDropDownMenuTemplate")
+        if ok and dropdown then
+            control.frame = dropdown
+            control.dropdown = dropdown
+            UIDropDownMenu_SetWidth(dropdown, width)
+            UIDropDownMenu_Initialize(dropdown, function(_, level)
+                for index = 1, #items do
+                    local item = items[index]
+                    local info = UIDropDownMenu_CreateInfo()
+                    info.text = STEP:GetText(item.labelKey)
+                    info.notCheckable = true
+                    info.func = function()
+                        UIDropDownMenu_SetText(dropdown, label)
+                        handler(item.value)
+                    end
+                    UIDropDownMenu_AddButton(info, level)
+                end
+            end)
+            function control:Refresh()
+                UIDropDownMenu_SetText(self.dropdown, label)
+            end
+            return control
+        end
+    end
+
+    local button = CreateFrame("Button", nil, parent, "UIPanelButtonTemplate")
+    button:SetSize(width, 22)
+    button:SetText(label)
+    button:SetScript("OnClick", function()
+        if items[1] then
+            handler(items[1].value)
+        end
+    end)
+    control.frame = button
+    function control:Refresh()
+        self.frame:SetText(label)
+    end
+    return control
+end
+
+function OptionsControls:CommitProposal(proposal, label)
+    if not STEP.ConfigActions:ApplyProposal(proposal, "options-bulk") then
+        return false
+    end
+    STEP:Print(STEP:GetText("CONFIG_ACTION_APPLIED", label))
+    if proposal.kind == "preset" and proposal.id == "empty" then
+        STEP:Print(STEP:GetText("CONFIG_NONE_VISIBLE"))
+    end
+    return true
+end
+
+function OptionsControls:EnsureConfirmationDialog()
+    if not StaticPopupDialogs then
+        return false
+    end
+    if not StaticPopupDialogs.STEP_CONFIRM_CONFIG_OVERWRITE then
+        StaticPopupDialogs.STEP_CONFIRM_CONFIG_OVERWRITE = {
+            text = "%s",
+            button1 = YES or "Yes",
+            button2 = NO or "No",
+            OnAccept = function(_, data)
+                if data then
+                    OptionsControls:CommitProposal(data.proposal, data.label)
+                end
+            end,
+            timeout = 0,
+            whileDead = true,
+            hideOnEscape = true,
+            preferredIndex = 3,
+        }
+    end
+    return true
+end
+
+function OptionsControls:RequestProposal(proposal, label)
+    local analysis = STEP.ConfigActions:AnalyzeProposal(proposal)
+    if not analysis or analysis.changed == 0 then
+        STEP:Print(STEP:GetText("CONFIG_NO_CHANGES"))
+        return false
+    end
+
+    if analysis.customOverwrites > 0 then
+        if self:EnsureConfirmationDialog() and StaticPopup_Show then
+            local dialog = StaticPopup_Show(
+                "STEP_CONFIRM_CONFIG_OVERWRITE",
+                STEP:GetText("CONFIG_CONFIRM_OVERWRITE", analysis.customOverwrites),
+                nil,
+                { proposal = proposal, label = label }
+            )
+            if dialog then
+                return true
+            end
+        end
+        STEP:Print(STEP:GetText("CONFIG_CONFIRM_UNAVAILABLE"))
+        return false
+    end
+    return self:CommitProposal(proposal, label)
+end
+
+function OptionsControls:RequestPreset(preset)
+    local proposal = STEP.ConfigActions:BuildPresetProposal(preset)
+    local labelKey = presetTextKeys[preset]
+    if not proposal or not labelKey then
+        return false
+    end
+    return self:RequestProposal(proposal, STEP:GetText(labelKey))
+end
+
+function OptionsControls:RequestCategory(category, operation, value)
+    local proposal = STEP.ConfigActions:BuildCategoryProposal(category, operation, value)
+    local categoryKey = categoryTextKeys[category]
+    if not proposal or not categoryKey then
+        return false
+    end
+    return self:RequestProposal(proposal, STEP:GetText(categoryKey))
+end
+
 function OptionsControls:CreateLabeledEnum(parent, prefix, label, width, values, getter, setter, textKeys)
     local control = self:CreateEnumSelector(parent, prefix, width, values, getter, setter, textKeys)
     control.label = CreateText(parent, label, "GameFontHighlightSmall")
@@ -216,13 +367,81 @@ local function CreateSection(parent, label)
     local section = CreateFrame("Frame", nil, parent)
     section:SetHeight(CATEGORY_HEIGHT)
     section.label = CreateText(section, label, "GameFontNormal")
-    section.label:SetPoint("LEFT", section, "LEFT", 2, 0)
+    section.label:SetPoint("TOPLEFT", section, "TOPLEFT", 2, -2)
     section.line = section:CreateTexture(nil, "ARTWORK")
     section.line:SetHeight(1)
     section.line:SetPoint("LEFT", section.label, "RIGHT", 8, 0)
-    section.line:SetPoint("RIGHT", section, "RIGHT", -4, 0)
+    section.line:SetPoint("TOPRIGHT", section, "TOPRIGHT", -90, -8)
     section.line:SetColorTexture(0.45, 0.45, 0.50, 0.45)
+
+    section.skillHeader = CreateText(section, STEP:GetText("OPTION_SKILL"), "GameFontHighlightSmall")
+    section.skillHeader:SetPoint("TOPLEFT", section, "TOPLEFT", 4, -28)
+    section.visibilityHeader = CreateText(section, STEP:GetText("OPTION_VISIBILITY"), "GameFontHighlightSmall")
+    section.visibilityHeader:SetJustifyH("CENTER")
+    section.visibilityHeader:SetPoint("TOP", section, "TOPLEFT", 309, -28)
+    section.logHeader = CreateText(section, STEP:GetText("OPTION_LOG"), "GameFontHighlightSmall")
+    section.logHeader:SetJustifyH("CENTER")
+    section.logHeader:SetPoint("TOP", section, "TOPLEFT", 504, -28)
+    section.notifyHeader = CreateText(section, STEP:GetText("OPTION_NOTIFY"), "GameFontHighlightSmall")
+    section.notifyHeader:SetJustifyH("CENTER")
+    section.notifyHeader:SetPoint("TOP", section, "TOPLEFT", 593, -28)
     return section
+end
+
+function OptionsControls:AddCategoryActions(section, surface, category)
+    section.visibilityAction = self:CreateActionSelector(
+        section,
+        surface.prefix .. category .. "BulkVisibility",
+        128,
+        "BULK_VISIBILITY",
+        {
+            { value = "expanded", labelKey = "OPTION_VISIBILITY_EXPANDED" },
+            { value = "compact", labelKey = "OPTION_VISIBILITY_COMPACT" },
+            { value = "hidden", labelKey = "OPTION_VISIBILITY_HIDDEN" },
+        },
+        function(value)
+            self:RequestCategory(category, "visibility", value)
+        end
+    )
+    section.visibilityAction.frame:SetPoint("TOPLEFT", section, "TOPLEFT", 224, -52)
+
+    section.logAction = self:CreateActionSelector(
+        section,
+        surface.prefix .. category .. "BulkLog",
+        60,
+        "BULK_LOGS",
+        {
+            { value = true, labelKey = "BULK_ENABLE" },
+            { value = false, labelKey = "BULK_DISABLE" },
+        },
+        function(value)
+            self:RequestCategory(category, "log", value)
+        end
+    )
+    section.logAction.frame:SetPoint("TOPLEFT", section, "TOPLEFT", 444, -52)
+
+    section.notifyAction = self:CreateActionSelector(
+        section,
+        surface.prefix .. category .. "BulkNotify",
+        60,
+        "BULK_NOTIFY",
+        {
+            { value = true, labelKey = "BULK_ENABLE" },
+            { value = false, labelKey = "BULK_DISABLE" },
+        },
+        function(value)
+            self:RequestCategory(category, "notify", value)
+        end
+    )
+    section.notifyAction.frame:SetPoint("TOPLEFT", section, "TOPLEFT", 545, -52)
+
+    section.reset = CreateFrame("Button", nil, section, "UIPanelButtonTemplate")
+    section.reset:SetSize(78, 22)
+    section.reset:SetPoint("TOPRIGHT", section, "TOPRIGHT", -2, -1)
+    section.reset:SetText(STEP:GetText("BULK_RESET"))
+    section.reset:SetScript("OnClick", function()
+        self:RequestCategory(category, "reset")
+    end)
 end
 
 function OptionsControls:CreateSkillRow(parent, surface, entry)
@@ -263,7 +482,7 @@ function OptionsControls:CreateSkillRow(parent, surface, entry)
         return values and values.logEnabled == true
     end, function(value)
         STEP.ConfigStore:SetSkill(entry.key, "logEnabled", value, "options")
-    end)
+    end, STEP:GetText("OPTION_LOG_TOOLTIP"))
     row.log:SetPoint("LEFT", row, "LEFT", 500, 0)
 
     row.notify = CreateCheck(row, "", function()
@@ -271,7 +490,7 @@ function OptionsControls:CreateSkillRow(parent, surface, entry)
         return values and values.notifyEnabled == true
     end, function(value)
         STEP.ConfigStore:SetSkill(entry.key, "notifyEnabled", value, "options")
-    end)
+    end, STEP:GetText("OPTION_NOTIFY_TOOLTIP"))
     row.notify:SetPoint("LEFT", row, "LEFT", 590, 0)
 
     function row:Refresh()
@@ -373,20 +592,30 @@ function OptionsControls:BuildSurface(parent, prefix)
     surface.maxNotification:SetPoint(child, 356, -344)
     surface.generalEnums[#surface.generalEnums + 1] = surface.maxNotification
 
+    surface.presetsTitle = CreateText(child, STEP:GetText("OPTIONS_PRESETS"), "GameFontNormal")
+    surface.presetsTitle:SetPoint("TOPLEFT", child, "TOPLEFT", 16, -408)
+    surface.presetButtons = {}
+    local presetOrder = { "weapons", "professions", "complete", "empty" }
+    for index = 1, #presetOrder do
+        local preset = presetOrder[index]
+        local button = CreateFrame("Button", nil, child, "UIPanelButtonTemplate")
+        button:SetSize(146, 24)
+        button:SetPoint("TOPLEFT", child, "TOPLEFT", 16 + (index - 1) * 158, -432)
+        button:SetText(STEP:GetText(presetTextKeys[preset]))
+        button:SetScript("OnClick", function()
+            self:RequestPreset(preset)
+        end)
+        surface.presetButtons[#surface.presetButtons + 1] = button
+    end
+
     surface.skillsTitle = CreateText(child, STEP:GetText("OPTIONS_SKILLS"), "GameFontNormal")
-    surface.skillsTitle:SetPoint("TOPLEFT", child, "TOPLEFT", 16, -420)
-    surface.skillNameHeader = CreateText(child, STEP:GetText("OPTION_SKILL"), "GameFontHighlightSmall")
-    surface.skillNameHeader:SetPoint("TOPLEFT", child, "TOPLEFT", 20, -446)
-    surface.visibilityHeader = CreateText(child, STEP:GetText("OPTION_VISIBILITY"), "GameFontHighlightSmall")
-    surface.visibilityHeader:SetPoint("TOPLEFT", child, "TOPLEFT", 244, -446)
-    surface.logHeader = CreateText(child, STEP:GetText("OPTION_LOG"), "GameFontHighlightSmall")
-    surface.logHeader:SetPoint("TOPLEFT", child, "TOPLEFT", 492, -446)
-    surface.notifyHeader = CreateText(child, STEP:GetText("OPTION_NOTIFY"), "GameFontHighlightSmall")
-    surface.notifyHeader:SetPoint("TOPLEFT", child, "TOPLEFT", 572, -446)
+    surface.skillsTitle:SetPoint("TOPLEFT", child, "TOPLEFT", 16, -478)
 
     for categoryIndex = 1, #categoryOrder do
         local category = categoryOrder[categoryIndex]
-        surface.categorySections[category] = CreateSection(child, STEP:GetText(categoryTextKeys[category]))
+        local section = CreateSection(child, STEP:GetText(categoryTextKeys[category]))
+        self:AddCategoryActions(section, surface, category)
+        surface.categorySections[category] = section
     end
 
     local entries = STEP.SkillRegistry:GetEntries()
@@ -417,7 +646,7 @@ function OptionsControls:RefreshSurface(surface)
     end
 
     local snapshot = STEP.SkillScanner and STEP.SkillScanner:GetSnapshot() or {}
-    local y = -470
+    local y = -504
     local visibleIndex = 0
     for categoryIndex = 1, #categoryOrder do
         local category = categoryOrder[categoryIndex]
@@ -433,10 +662,16 @@ function OptionsControls:RefreshSurface(surface)
         end
 
         if #categoryRows > 0 then
+            if visibleIndex > 0 then
+                y = y - CATEGORY_GAP
+            end
             section:ClearAllPoints()
             section:SetPoint("TOPLEFT", surface.child, "TOPLEFT", 16, y)
             section:SetPoint("TOPRIGHT", surface.child, "TOPRIGHT", -16, y)
             section:Show()
+            section.visibilityAction:Refresh()
+            section.logAction:Refresh()
+            section.notifyAction:Refresh()
             y = y - CATEGORY_HEIGHT
             for rowIndex = 1, #categoryRows do
                 visibleIndex = visibleIndex + 1
@@ -484,6 +719,7 @@ function OptionsControls:Initialize()
     if not UIParent then
         return false
     end
+    self:EnsureConfirmationDialog()
     STEP:RegisterCallback("CONFIG_CHANGED", self, self.OnStateChanged)
     STEP:RegisterCallback("SKILLS_UPDATED", self, self.OnStateChanged)
     self.initialized = true

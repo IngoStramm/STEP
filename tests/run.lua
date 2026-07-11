@@ -379,6 +379,7 @@ Test("loads every Lua file from the toc", function()
     AssertTrue(#loadedRuntimeFiles > 0)
     AssertTrue(type(STEP.Core) == "nil")
     AssertTrue(type(STEP.Database) == "table")
+    AssertTrue(type(STEP.ConfigActions) == "table")
     AssertTrue(type(STEP.MainPanel) == "table")
     AssertTrue(type(STEP.OptionsControls) == "table")
     AssertTrue(type(STEP.NativeOptions) == "table")
@@ -691,6 +692,91 @@ Test("ConfigStore skill getter is read-only before discovery", function()
     AssertNil(STEP.ConfigStore:GetSkill("primary.mining"))
     AssertNil(STEPDB.config.skills["primary.mining"])
     AssertNil(STEPDB.state.preferencesSeen["primary.mining"])
+end)
+
+Test("ConfigActions builds the four presets for learned skills only", function()
+    InitializeStores(nil)
+    local snapshot = {
+        ["combat.axes"] = SnapshotSkill(10, 100),
+        ["combat.swords"] = SnapshotSkill(20, 100),
+        ["combat.defense"] = SnapshotSkill(30, 100),
+        ["primary.mining"] = SnapshotSkill(40, 100),
+        ["secondary.cooking"] = SnapshotSkill(50, 100),
+    }
+    local equipment = {
+        mainHand = { skillKey = "combat.axes" },
+    }
+
+    local function Targets(proposal)
+        local targets = {}
+        for index = 1, #proposal.changes do
+            local change = proposal.changes[index]
+            targets[change.skillKey] = targets[change.skillKey] or {}
+            targets[change.skillKey][change.field] = change.value
+        end
+        return targets
+    end
+
+    local options = { snapshot = snapshot, equipment = equipment }
+    local weapons = Targets(STEP.ConfigActions:BuildPresetProposal("weapons", options))
+    AssertEqual("compact", weapons["combat.axes"].visibility)
+    AssertEqual("expanded", weapons["combat.swords"].visibility)
+    AssertEqual("hidden", weapons["combat.defense"].visibility)
+    AssertEqual("hidden", weapons["primary.mining"].visibility)
+    AssertTrue(weapons["combat.axes"].logEnabled)
+    AssertFalse(weapons["primary.mining"].notifyEnabled)
+
+    local professions = Targets(STEP.ConfigActions:BuildPresetProposal("professions", options))
+    AssertEqual("hidden", professions["combat.axes"].visibility)
+    AssertEqual("compact", professions["primary.mining"].visibility)
+    AssertEqual("compact", professions["secondary.cooking"].visibility)
+    AssertTrue(professions["primary.mining"].notifyEnabled)
+
+    local complete = Targets(STEP.ConfigActions:BuildPresetProposal("complete", options))
+    AssertEqual("compact", complete["combat.axes"].visibility)
+    AssertEqual("expanded", complete["combat.swords"].visibility)
+    AssertEqual("hidden", complete["combat.defense"].visibility)
+    AssertEqual("expanded", complete["primary.mining"].visibility)
+
+    local empty = Targets(STEP.ConfigActions:BuildPresetProposal("empty", options))
+    AssertEqual("hidden", empty["combat.axes"].visibility)
+    AssertEqual("hidden", empty["secondary.cooking"].visibility)
+    AssertFalse(empty["combat.axes"].logEnabled)
+    AssertFalse(empty["secondary.cooking"].notifyEnabled)
+end)
+
+Test("ConfigActions analyzes and applies category batches once", function()
+    InitializeStores(nil)
+    STEP.EquipmentResolver.state = {}
+    STEP.ConfigStore:EnsureSkill("combat.axes")
+    STEP.ConfigStore:EnsureSkill("combat.swords")
+    STEP.ConfigStore:SetSkill("combat.axes", "visibility", "hidden", "test")
+
+    local proposal = STEP.ConfigActions:BuildCategoryProposal("combat", "visibility", "compact", {
+        snapshot = {
+            ["combat.axes"] = SnapshotSkill(10, 100),
+            ["combat.swords"] = SnapshotSkill(20, 100),
+            ["primary.mining"] = SnapshotSkill(30, 100),
+        },
+        equipment = {},
+    })
+    local analysis = STEP.ConfigActions:AnalyzeProposal(proposal)
+    AssertEqual(2, analysis.total)
+    AssertEqual(2, analysis.changed)
+    AssertEqual(1, analysis.customOverwrites)
+
+    local callbacks = 0
+    STEP:RegisterCallback("CONFIG_CHANGED", nil, function(_, payload)
+        callbacks = callbacks + 1
+        AssertTrue(payload.batch)
+    end)
+    AssertTrue(STEP.ConfigActions:ApplyProposal(proposal, "test-category"))
+    AssertEqual(1, callbacks)
+    AssertEqual("compact", STEP.ConfigStore:GetSkill("combat.axes").visibility)
+    AssertEqual("compact", STEP.ConfigStore:GetSkill("combat.swords").visibility)
+
+    AssertNil(STEP.ConfigActions:BuildCategoryProposal("invalid", "visibility", "hidden"))
+    AssertNil(STEP.ConfigActions:BuildPresetProposal("invalid"))
 end)
 
 Test("ConfigStore batches use the last value for duplicate targets", function()

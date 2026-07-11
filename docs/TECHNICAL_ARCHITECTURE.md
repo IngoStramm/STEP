@@ -7,9 +7,9 @@
 | Produto | STEP — Skill Training & Evolution Panel |
 | Cliente-alvo | World of Warcraft Anniversary / Burning Crusade Classic 2.5.6 |
 | Interface-alvo | 20506 |
-| Versão do documento | 1.0 |
+| Versão do documento | 1.1 |
 | Status | Aprovado como baseline técnica da V1 |
-| PRD de referência | `docs/PRD.md`, versão 1.0 |
+| PRD de referência | `docs/PRD.md`, versão 1.1 |
 | Data | 2026-07-11 |
 | Data da aprovação | 2026-07-11 |
 | Idioma canônico | Português do Brasil |
@@ -124,6 +124,7 @@ STEP/
   Services/
     Database.lua
     ConfigStore.lua
+    ConfigActions.lua
     SkillScanner.lua
     EquipmentResolver.lua
     ActivityTracker.lua
@@ -210,6 +211,14 @@ Eventos auxiliares `SKILL_CORRECTED`, `SKILL_MAXIMUM_CHANGED` e `SKILL_MODIFIER_
 - valida valores antes de persistir;
 - emite `CONFIG_CHANGED` com o menor escopo possível;
 - impede que os dois painéis de configuração mantenham estados divergentes.
+
+### 6.3.1 `ConfigActions`
+
+- calcula propostas para os quatro presets e para ações em massa por categoria;
+- limita os lotes às perícias efetivamente aprendidas;
+- identifica quantas alterações substituem valores diferentes dos padrões;
+- entrega o lote validado ao `ConfigStore` somente depois da confirmação da interface;
+- é compartilhado pelos controles visuais e pelos comandos `/step preset` e `/step category`.
 
 ### 6.4 `SkillRegistry`
 
@@ -988,6 +997,8 @@ Presets e ações por categoria são calculados primeiro como uma alteração pr
 
 Uma operação em lote emite um único callback com todas as chaves alteradas, evitando múltiplas reconstruções da interface.
 
+Esta fronteira está implementada em `ConfigActions`. A detecção considera personalizada uma preferência cujo valor atual difere do padrão calculado para a perícia. Os presets alteram visibilidade, log e notificação juntos; ações por categoria mantêm esses três campos independentes, exceto em `Restaurar padrões`.
+
 ### 16.3 Sincronização das superfícies
 
 Os controles nativos e independentes não se atualizam diretamente entre si. Ambos observam `CONFIG_CHANGED` e relêem o valor canônico do `ConfigStore`.
@@ -1060,6 +1071,19 @@ Isso não significa reutilizar o mesmo frame simultaneamente; significa reutiliz
 As listas de perícias ficam em `ScrollFrame`. Controles gerais e por categoria são agrupados em blocos colapsáveis somente se os testes de leitura mostrarem necessidade.
 
 A arquitetura permite alterar espaçamento, ordem visual e agrupamento sem mudar o formato persistido.
+
+Cada categoria é renderizada como um bloco independente nesta ordem:
+
+1. título da categoria e ação `Restaurar padrões`;
+2. cabeçalhos repetidos de perícia, visibilidade, log e notificação;
+3. seletores em massa alinhados às mesmas colunas das linhas;
+4. linhas das perícias aprendidas;
+5. espaçamento antes da categoria seguinte.
+
+Os checkboxes sem texto visível mantêm uma área de interação restrita à própria
+coluna para evitar sobreposição entre log e notificação. Seus tooltips são
+ancorados ao cursor e explicam a independência entre visibilidade, histórico e
+alertas. Essa composição é compartilhada pelas superfícies nativa e independente.
 
 ### 18.3 Histórico
 
@@ -1340,11 +1364,15 @@ Implementada e validada no cliente `20506` em `0.2.0-alpha`. As evidências est�
 - presets, tooltips e comportamento em combate;
 - primeira rodada de leitura visual.
 
-O `ViewModel` puro foi implementado com testes de visibilidade, resumo, categorias, ordenação, cores, equipamento, transientes e estados do painel. A primeira fatia de `MainPanel` também foi implementada com modos compacto/expandido, linhas reutilizáveis, tooltips, destaque de equipamento, posição persistida e comandos. Dimensões, densidade e contraste ainda dependem de validação visual; as superfícies de opções permanecem pendentes.
+O `ViewModel` puro foi implementado com testes de visibilidade, resumo, categorias, ordenação, cores, equipamento, transientes e estados do painel. O `MainPanel` e as duas superfícies de configuração foram implementados e validados visualmente. Presets e ações em massa por categoria estão implementados com propostas atômicas, detecção de sobrescrita, confirmação com contagem e comandos equivalentes.
 
 A primeira rodada visual do `MainPanel` foi aprovada no cliente `20506`, incluindo compacto, expandido, cores, equipamento, tooltip, arraste, persistência, bloqueio e visibilidade. As evidências estão em `docs/PHASE2_VALIDATION_LOG.md`.
 
 A primeira fatia de configurações também está implementada e validada no jogo: `OptionsControls` constrói controles compartilhados, `NativeOptions` registra a superfície do jogo e `ConfigWindow` oferece a janela individual arrastável. Ambas relêem o `ConfigStore` após `CONFIG_CHANGED`, mantendo sincronização bidirecional com o painel principal.
+
+A segunda rodada de configurações validou presets, ações em massa, restauração de
+padrões, paridade dos comandos, confirmação de sobrescrita e o layout final dos
+blocos de categoria. As evidências estão em `docs/PHASE2_VALIDATION_LOG.md`.
 
 ### Fase 3 — Rastreamento e histórico
 
