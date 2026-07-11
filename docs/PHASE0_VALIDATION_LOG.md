@@ -84,7 +84,7 @@ Arquivos originais em `World of Warcraft/_anniversary_/Screenshots/`.
 | Arma de punho versus Desarmado | Pendente. |
 | Armas à distância e Varinhas | Pendente. |
 | Eventos de ataque e Defesa | Parcialmente validados na rodada 2; off-hand, ataques à distância e outros resultados permanecem pendentes. |
-| Produção e fila de produção | Produção simples e interrupção validadas na rodada 5; fila permanece pendente. |
+| Produção e fila de produção | Produção simples, interrupção e fila automática validadas nas rodadas 5 e 6. |
 | Mineração, Herborismo e Esfolamento | Mineração validada na rodada 4; Herborismo e Esfolamento permanecem pendentes. |
 | Pesca | Pendente. |
 | Ganho real de perícia | Validado para Defesa e Machado de Duas Mãos na rodada 3. |
@@ -413,3 +413,59 @@ Arquivos originais em `World of Warcraft/_anniversary_/Screenshots/`.
 | `TRADE_SKILL_UPDATE` duplicado | Confirmado. |
 | Fila automática com quantidade maior que um | Pendente. |
 | Janela alternativa `CRAFT` | Pendente. |
+
+## Rodada 6 — Fila automática de Engenharia
+
+| Campo | Valor |
+| --- | --- |
+| Data | 2026-07-11 |
+| Build | `0.1.0-alpha` |
+| Profissão | Engineering 375/375 |
+| Receita | Coarse Blasting Powder |
+| Spell ID observado | `3929` |
+| Execuções consecutivas visíveis | 6, com contadores de `12` a `17` |
+| Resultado geral | Aprovado |
+
+### Comportamento da fila
+
+Cada unidade apresentou a sequência completa:
+
+```text
+UNIT_SPELLCAST_SENT
+UNIT_SPELLCAST_START
+UNIT_SPELLCAST_SUCCEEDED
+UNIT_SPELLCAST_STOP
+```
+
+As capturas mostram execuções consecutivas cujos quartos argumentos avançam de `12` a `17`. Cada unidade recebeu um `castGUID` diferente e produziu sua própria mensagem `You create: [Coarse Blasting Powder]`.
+
+Não foi observado um evento adicional que representasse a fila como um todo. Portanto:
+
+- cada unidade é uma tentativa independente;
+- o tempo ativo da fila é a soma das tentativas;
+- não deve existir um segundo cronômetro abrangendo toda a fila;
+- `castGUID` é a chave de deduplicação;
+- o quarto argumento crescente pode auxiliar o diagnóstico, mas não substitui o GUID.
+
+### Receita diferente na mesma profissão
+
+Coarse Blasting Powder usa `spellID = 3929`, enquanto Rough Blasting Powder da rodada anterior usou `3918`. Isso confirma que o tracker não pode identificar Engenharia por um único spell ID de produção; a profissão vem do contexto `TRADE_SKILL`.
+
+### Evidências
+
+- `WoWScrnShot_071126_135746.jpg`: unidades com contadores `12` e `13`.
+- `WoWScrnShot_071126_135808.jpg`: continuação com `14`, `15` e início de `16`.
+- `WoWScrnShot_071126_135816.jpg`: conclusão de `16` e `17`.
+
+Arquivos originais em `World of Warcraft/_anniversary_/Screenshots/`.
+
+### Atualização da matriz
+
+| Cenário | Estado após a rodada 6 |
+| --- | --- |
+| Fila automática com várias unidades | Validada. |
+| Novo `castGUID` por unidade | Validado. |
+| Ciclo completo por unidade | Validado. |
+| Soma unitária como modelo de tempo | Validada como decisão técnica. |
+| Evento global de fila | Não observado e não necessário para o modelo. |
+| IDs diferentes para receitas da mesma profissão | Validado. |

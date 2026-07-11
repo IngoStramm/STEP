@@ -661,8 +661,17 @@ Consequências:
 - o primeiro evento terminal encerra o relógio monotônico da tentativa;
 - eventos posteriores com o mesmo `castGUID` podem refinar o resultado, mas nunca somar nova duração ou novo evento;
 - `SUCCEEDED` e `STOP` podem compartilhar o mesmo instante;
-- cada tentativa observada recebeu novo `castGUID`;
-- a fila de produção ainda precisa ser validada separadamente com quantidade maior que um.
+- cada tentativa observada recebeu novo `castGUID`.
+
+Uma fila automática posterior de Coarse Blasting Powder confirmou:
+
+- `spellID = 3929`, específico dessa receita de Engenharia;
+- execuções consecutivas com o quarto argumento avançando de `12` a `17`;
+- um novo `castGUID` para cada unidade;
+- a sequência completa `SENT -> START -> SUCCEEDED -> STOP` para cada unidade;
+- ausência de um evento global adicional de início ou fim da fila.
+
+O quarto argumento crescente é útil para diagnóstico, mas `castGUID` permanece a identidade canônica da tentativa. O tempo ativo de uma fila deve ser a soma das durações individuais; o tracker não deve manter um intervalo paralelo para a fila inteira.
 
 ### 13.4 Coleta
 
