@@ -1,0 +1,15 @@
+{
+  "name": "step-wow-addon",
+  "version": "0.2.0-alpha",
+  "private": true,
+  "scripts": {
+    "lint:lua": "node scripts/lint-lua.mjs",
+    "test:lua": "node scripts/run-lua-tests.mjs",
+    "test:lua51": "node scripts/run-lua-tests.mjs lua5.1",
+    "test": "npm run lint:lua && npm run test:lua"
+  },
+  "devDependencies": {
+    "fengari-node-cli": "0.1.0",
+    "luaparse": "0.3.1"
+  }
+}

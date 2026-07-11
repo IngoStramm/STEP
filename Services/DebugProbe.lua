@@ -192,12 +192,16 @@ end
 
 function DebugProbe:DumpStatus()
     local config = self:GetConfig() or {}
-    local sessionId = STEP.Database and STEP.Database.db and STEP.Database.db.state.sessionId or "none"
+    local database = STEP.Database and STEP.Database.db
+    local state = database and type(database.state) == "table" and database.state or {}
+    local sessionId = state.sessionId or "none"
     STEP:Print(string.format(
-        "version=%s phase=%s ready=%s locale=%s session=%s debug=%s liveCombat=%s liveCasts=%s buffer=%d/%d",
+        "version=%s phase=%s schema=%s ready=%s blocked=%s locale=%s session=%s debug=%s liveCombat=%s liveCasts=%s buffer=%d/%d",
         tostring(STEP.version),
         tostring(STEP.Constants.DEVELOPMENT_PHASE),
+        tostring(database and database.schemaVersion or "none"),
         tostring(STEP.ready),
+        tostring(STEP.blocked == true),
         tostring(GetLocale and GetLocale() or "unknown"),
         tostring(sessionId),
         tostring(config.enabled == true),

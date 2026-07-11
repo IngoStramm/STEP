@@ -15,24 +15,49 @@ jobs:
 
     steps:
       - name: Checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v6
+        with:
+          node-version: 22
+          cache: npm
+
+      - name: Install development dependencies
+        run: npm ci
+
+      - name: Install Lua 5.1
+        run: |
+          sudo apt-get update
+          sudo apt-get install --yes lua5.1
+
+      - name: Validate addon core
+        run: |
+          npm test
+          npm run test:lua51
+
+      - name: Verify tag and addon versions match
+        if: github.ref_type == 'tag'
+        shell: bash
+        run: |
+          toc_version="$(awk -F': ' '/^## Version:/{print $2; exit}' STEP.toc | tr -d '\r')"
+          tag_version="${GITHUB_REF_NAME#v}"
+          test "$toc_version" = "$tag_version"
 
       - name: Build addon package
-        run: |
-          mkdir -p package/STEP
-          cp STEP.toc Core.lua Constants.lua Util.lua SlashCommands.lua package/STEP/
-          cp -r Locale Data Services package/STEP/
-          cd package
-          zip -r ../STEP.zip STEP
+        shell: pwsh
+        run: ./scripts/validate-package.ps1 -OutputPath STEP.zip
 
       - name: Upload package artifact
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v6
         with:
           name: STEP
           path: STEP.zip
 
       - name: Publish GitHub release
         if: startsWith(github.ref, 'refs/tags/')
-        uses: softprops/action-gh-release@v2
+        uses: softprops/action-gh-release@v3
         with:
           files: STEP.zip
+          fail_on_unmatched_files: true
+          prerelease: ${{ contains(github.ref_name, '-') }}

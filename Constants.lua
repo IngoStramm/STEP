@@ -1,20 +1,46 @@
 local _, STEP = ...
 
 STEP.Constants = {
-    SCHEMA_VERSION = 1,
-    DEVELOPMENT_PHASE = "phase0",
+    SCHEMA_VERSION = 2,
+    DEVELOPMENT_PHASE = "phase1",
     SKILL_SCAN_DELAY = 0.10,
     DEBUG_EVENT_LIMIT = 120,
     DEBUG_DUMP_LIMIT = 20,
+    FALLBACK_SKILL_ICON = 134400,
 }
 
-STEP.Constants.COMBAT_SUBEVENTS = {
+STEP.Constants.DEBUG_COMBAT_SUBEVENTS = {
     SWING_DAMAGE = true,
     SWING_MISSED = true,
     RANGE_DAMAGE = true,
     RANGE_MISSED = true,
     SPELL_DAMAGE = true,
     SPELL_MISSED = true,
+}
+
+-- Compatibility alias used only by the temporary Phase 0 diagnostic probe.
+STEP.Constants.COMBAT_SUBEVENTS = STEP.Constants.DEBUG_COMBAT_SUBEVENTS
+
+STEP.Constants.CONFIG_ENUMS = {
+    visibility = {
+        hidden = true,
+        expanded = true,
+        compact = true,
+    },
+    sortMode = {
+        progress = true,
+        alphabetical = true,
+    },
+    combatBehavior = {
+        keep = true,
+        compact = true,
+        hide = true,
+    },
+    notificationMode = {
+        exaggerated = true,
+        discreet = true,
+        none = true,
+    },
 }
 
 STEP.Constants.SPELLCAST_EVENTS = {

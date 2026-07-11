@@ -3,18 +3,20 @@
 ## Notes: Tracks learned weapon and profession skills with configurable progress views, timing, and history.
 ## Notes-ptBR: Acompanha pericias aprendidas de armas e profissoes com progresso, tempo e historico configuraveis.
 ## Author: Ingo Stramm
-## Version: 0.1.0-alpha
+## Version: 0.2.0-alpha
 ## SavedVariablesPerCharacter: STEPDB
 ## DefaultState: enabled
 
-Core.lua
 Constants.lua
 Util.lua
 Locale\enUS.lua
 Locale\ptBR.lua
 Data\SkillRegistry.lua
+Services\EventBus.lua
 Services\Database.lua
-Services\DebugProbe.lua
+Services\ConfigStore.lua
 Services\EquipmentResolver.lua
 Services\SkillScanner.lua
+Services\DebugProbe.lua
+Core.lua
 SlashCommands.lua

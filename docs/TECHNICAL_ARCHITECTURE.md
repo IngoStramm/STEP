@@ -181,6 +181,20 @@ HISTORY_CHANGED
 EQUIPMENT_CHANGED
 ```
 
+Desde a Fase 1, todo evento interno transporta um único payload em tabela. Isso evita contratos posicionais variáveis e permite acrescentar campos compatíveis. Contratos do núcleo:
+
+| Evento | Payload principal |
+| --- | --- |
+| `STEP_READY` | `version`, `phase`, `schemaVersion`, `snapshot`. |
+| `SKILLS_UPDATED` | `snapshot`, `previous`, `changes`, `reason`, `baseline`. |
+| `SKILL_GAINED` | `type`, `skillKey`, `previous`, `current`, `gainedPoints`, `reachedMaximum`, `reason`. |
+| `SKILL_LEARNED` | `type`, `skillKey`, `current`, `relearned`, `reason`. |
+| `SKILL_UNLEARNED` | `type`, `skillKey`, `previous`, `reason`. |
+| `CONFIG_CHANGED` | `source`, `batch`, `changes`; cada mudança identifica escopo e valores anterior/novo. |
+| `EQUIPMENT_CHANGED` | `previous`, `current`, `changedSlots`, `reason`. |
+
+Eventos auxiliares `SKILL_CORRECTED`, `SKILL_MAXIMUM_CHANGED` e `SKILL_MODIFIER_CHANGED` seguem o mesmo envelope de delta. O novo snapshot e o banco são instalados antes de qualquer delta ser emitido, de modo que listeners nunca observem o estado antigo.
+
 ### 6.2 `Database`
 
 - aplica padrões sem substituir valores válidos;
@@ -334,6 +348,8 @@ Portanto:
 - mão secundária vazia não gera, por si só, atividade de Desarmado;
 - os payloads e ganhos reais desses dois casos devem ser confirmados no cliente.
 
+Logo após `PLAYER_EQUIPMENT_CHANGED`, link e ID podem ficar indisponíveis transitoriamente. Nesse intervalo, o slot alterado permanece `unresolved` e é consultado novamente após `0,10` segundo; o booleano do evento não é usado para inferir se a mão está vazia.
+
 ## 8. Modelo do retrato de perícias
 
 O `SkillScanner` produz em memória:
@@ -362,10 +378,12 @@ snapshot = {
 | `current` aumentou | Um evento de ganho com a diferença total. |
 | `current` diminuiu sem abandono | Atualização corretiva; registrar diagnóstico, sem ganho. |
 | `maximum` mudou | Atualizar interface e progresso; não criar ganho isolado. |
-| Chave presente antes e ausente agora | Abandono; fechar segmento e medições. |
+| Chave presente antes e ausente em duas varreduras completas consecutivas | Abandono; fechar segmento e medições. A primeira ausência é tratada como transitória. |
 | Apenas bônus/modificador mudou | Atualizar tooltip, sem alterar cor de progresso. |
 
 Um salto de mais de um ponto será um único evento com `gainedPoints > 1`. A interface pode apresentá-lo como `+N`, e os agregados contabilizam os N pontos. Não serão inventados horários individuais para pontos que o cliente informou juntos.
+
+Antes de ler as linhas, o scanner preserva quais cabeçalhos estavam recolhidos, expande a lista inteira e restaura o estado visual ao final. Eventos `SKILL_LINES_CHANGED` causados sincronamente por essa manipulação interna são ignorados para não criar um ciclo de novas varreduras. Uma linha canônica com rank ou máximo inválido rejeita a varredura inteira, preservando o retrato anterior.
 
 ### 8.2 Agrupamento de eventos de varredura
 
@@ -805,7 +823,7 @@ O scanner solicita ao `ActivityTracker` os tempos pendentes no momento da criaç
 
 ```lua
 STEPDB = {
-  schemaVersion = 1,
+  schemaVersion = 2,
   config = {
     panel = {
       shown = true,
@@ -861,6 +879,8 @@ STEPDB = {
 Padrões são aplicados por campo ausente, não substituindo tabelas inteiras. Uma perícia recém-descoberta recebe os padrões do PRD somente na primeira vez em que aparece naquele personagem.
 
 Preferências permanecem em `config.skills` após abandono, permitindo restauração ao reaprender.
+
+Na primeira descoberta, `logEnabled` e `notifyEnabled` acompanham a visibilidade: ambos ficam ativos para `expanded`/`compact` e inativos para `hidden`. Depois dessa criação, visibilidade, log e notificação são preferências independentes; mudar uma delas individualmente não sobrescreve as demais. Presets futuros podem alterar as três explicitamente em uma única operação em lote.
 
 ### 15.3 Sessões
 
@@ -920,6 +940,10 @@ Regras:
 - campos desconhecidos são preservados quando inofensivos;
 - valores inválidos voltam ao padrão do campo, sem apagar o restante do banco;
 - erros são informados de forma legível e mantêm uma cópia recuperável da tabela antiga durante a sessão.
+- um schema mais novo que o suportado bloqueia a inicialização funcional sem aplicar defaults, iniciar sessão ou alterar a tabela; não existe downgrade implícito.
+- um banco não vazio com `schemaVersion` ausente, não inteiro ou inválido também é bloqueado sem mutação; apenas uma tabela realmente vazia é tratada como instalação nova.
+
+A Fase 1 elevou o schema parcial de diagnóstico de `1` para `2` por meio de `migrate_1_to_2`, preservando `config.debug`, retratos conhecidos e qualquer campo desconhecido inofensivo.
 
 ## 16. Modelo de configuração
 
@@ -1281,6 +1305,8 @@ Se o teste indicar mudança de fluxo, padrão, dado armazenado ou critério de a
 - equipamento;
 - barramento interno;
 - testes puros principais.
+
+Implementada em `0.2.0-alpha`. A conclusão definitiva da fase depende da validação instrumentada de `docs/PHASE1_TEST_PLAN.md` no cliente `20506`.
 
 ### Fase 2 — Painel e opções
 

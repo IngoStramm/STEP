@@ -10,6 +10,9 @@ local function PrintHelp()
     STEP:Print(STEP:GetText("HELP_EVENTS"))
     STEP:Print(STEP:GetText("HELP_LIVE"))
     STEP:Print(STEP:GetText("HELP_CLEAR"))
+    STEP:Print(STEP:GetText("HELP_DATABASE"))
+    STEP:Print(STEP:GetText("HELP_BUS"))
+    STEP:Print(STEP:GetText("HELP_CONFIG_STATE"))
 end
 
 local function SplitCommand(message)
@@ -58,6 +61,18 @@ local function HandleDebug(rest)
     elseif subcommand == "clear" then
         if RequireDebug() then
             STEP.DebugProbe:Clear()
+        end
+    elseif subcommand == "database" then
+        if RequireDebug() then
+            STEP.Database:DumpStatus()
+        end
+    elseif subcommand == "bus" then
+        if RequireDebug() then
+            STEP:Print("EventBus listeners=" .. tostring(STEP.EventBus:GetListenerCount()))
+        end
+    elseif subcommand == "config" then
+        if RequireDebug() then
+            STEP.ConfigStore:DumpSkill(value)
         end
     elseif subcommand == "combat" or subcommand == "casts" then
         local enabled = ParseOnOff(value)

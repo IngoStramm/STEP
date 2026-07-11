@@ -2,7 +2,7 @@
 
 STEP is a World of Warcraft Anniversary / Burning Crusade Classic addon for tracking learned weapon and profession skill progress in a compact, configurable panel.
 
-The project is currently in **Phase 0**, focused on validating the game APIs and events required for accurate combat, crafting, gathering, and fishing activity tracking. The final user interface is not implemented yet.
+The project is currently in **Phase 1**. Its canonical skill snapshot, schema migration, configuration store, event bus, and equipment resolution core are implemented. The final user interface is not implemented yet.
 
 ## Planned features
 
@@ -16,7 +16,7 @@ The project is currently in **Phase 0**, focused on validating the game APIs and
 
 ## Development commands
 
-- `/step help` — List Phase 0 commands.
+- `/step help` — List Phase 1 commands.
 - `/step status` — Show diagnostic state.
 - `/step scan` — Scan learned skills.
 - `/step debug on|off` — Enable or disable event capture.
@@ -25,6 +25,9 @@ The project is currently in **Phase 0**, focused on validating the game APIs and
 - `/step debug events` — Print the latest captured events.
 - `/step debug combat on|off` — Toggle live combat output.
 - `/step debug casts on|off` — Toggle live spellcast output.
+- `/step debug database` — Show schema, migration, session, and persisted-state status.
+- `/step debug bus` — Show the internal listener count.
+- `/step debug config <skillKey>` — Show the canonical preferences for one skill.
 
 ## Compatibility
 
@@ -56,6 +59,18 @@ Do not use GitHub's green **Code > Download ZIP** button for installation. That 
 - `docs/TECHNICAL_ARCHITECTURE.md` — Approved technical architecture.
 - `docs/PHASE0_TEST_PLAN.md` — In-game API validation procedure.
 - `docs/PHASE0_VALIDATION_LOG.md` — Evidence and results from in-game validation rounds.
+- `docs/PHASE1_TEST_PLAN.md` — In-game validation procedure for the data core and schema migration.
+
+## Automated tests
+
+Install the development dependencies and run:
+
+```powershell
+npm ci
+npm test
+```
+
+The test command reads the real `STEP.toc`, validates every runtime file with the Lua 5.1 grammar, and loads that exact order in the pure core suite with mocked WoW APIs. GitHub Actions repeats the suite with a native Lua 5.1 interpreter and validates the installable package.
 
 ## Package validation
 
@@ -65,4 +80,4 @@ From PowerShell, run:
 .\scripts\validate-package.ps1
 ```
 
-The script builds a temporary `STEP.zip`, verifies its single top-level `STEP/` folder and removes the temporary files afterward.
+The script derives the package contents from `STEP.toc`, builds a temporary `STEP.zip`, verifies its single top-level `STEP/` folder and removes the temporary files afterward. Pass `-OutputPath STEP.zip` to keep the validated artifact.

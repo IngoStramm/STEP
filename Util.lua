@@ -57,6 +57,75 @@ function Util:SortedKeys(values)
     return keys
 end
 
+function Util:CountKeys(values)
+    local count = 0
+    for _ in pairs(values or {}) do
+        count = count + 1
+    end
+    return count
+end
+
+function Util:ShallowCopy(values)
+    local copy = {}
+    for key, value in pairs(values or {}) do
+        copy[key] = value
+    end
+    return copy
+end
+
+function Util:DeepCopy(value, seen)
+    if type(value) ~= "table" then
+        return value
+    end
+
+    seen = seen or {}
+    if seen[value] then
+        return seen[value]
+    end
+
+    local copy = {}
+    seen[value] = copy
+    for key, child in pairs(value) do
+        copy[self:DeepCopy(key, seen)] = self:DeepCopy(child, seen)
+    end
+    return copy
+end
+
+function Util:ApplyDefaults(target, defaults)
+    if type(target) ~= "table" or type(defaults) ~= "table" then
+        return target
+    end
+
+    for key, value in pairs(defaults) do
+        if type(value) == "table" then
+            if type(target[key]) ~= "table" then
+                target[key] = {}
+            end
+            self:ApplyDefaults(target[key], value)
+        elseif target[key] == nil then
+            target[key] = value
+        end
+    end
+
+    return target
+end
+
+function Util:IsFiniteNumber(value)
+    return type(value) == "number"
+        and value == value
+        and value ~= math.huge
+        and value ~= -math.huge
+end
+
+function Util:Clamp(value, minimum, maximum)
+    if value < minimum then
+        return minimum
+    elseif value > maximum then
+        return maximum
+    end
+    return value
+end
+
 function Util:MonotonicTime()
     if GetTimePreciseSec then
         return GetTimePreciseSec()
