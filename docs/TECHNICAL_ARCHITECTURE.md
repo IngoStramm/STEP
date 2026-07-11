@@ -741,9 +741,11 @@ loot
 
 O alvo de `UNIT_SPELLCAST_SENT` veio `nil`, cada tentativa recebeu novo `castGUID` e o loot apareceu depois de `CHANNEL_STOP`. Uma tentativa inicial também mostrou `UNIT_SPELLCAST_FAILED`.
 
-O período canalizado e a espera pelo loot fazem parte do tempo ativo. Serão correlacionados lançamento, `UNIT_SPELLCAST_*`, loot e timeout; `SUCCEEDED` confirma a conclusão do canal, mas o loot continua sendo a evidência de captura. O timeout deve apenas encerrar a tentativa, nunca inventar sucesso.
+O período canalizado e a espera pelo loot fazem parte do tempo ativo. Serão correlacionados lançamento, `UNIT_SPELLCAST_*`, loot e timeout. No teste isolado, `SENT` e `CHANNEL_START` ocorreram em `152919.264`, `SUCCEEDED` em `152919.265`, `CHANNEL_STOP` em `152933.032` e `LOOT_OPENED` em `152933.281`. Portanto, `SUCCEEDED` apenas confirma que o lançamento foi aceito; não encerra o relógio nem prova captura. `CHANNEL_STOP` encerra o canal, e o loot posterior é a evidência de captura. O timeout deve apenas encerrar a tentativa, nunca inventar sucesso.
 
-O ID da ação é dependente do grau aprendido: `33095` foi observado no personagem com Pesca `325/375`, enquanto `7620` é apenas uma referência de grau inicial e não serve como ID universal. O tracker deverá reconhecer uma lista validada de IDs de grau e usar o nome da magia resolvido pelo cliente como evidência diagnóstica. Um segundo ciclo com `spellID = 45731` apareceu antes de uma tentativa e ainda precisa ser identificado antes de entrar nas regras de produção.
+O ID da ação é dependente do grau aprendido: `33095` foi observado no personagem com Pesca `325/375` e resolvido pelo cliente como `Fishing`, enquanto `7620` é apenas uma referência de grau inicial e não serve como ID universal. O tracker deverá reconhecer a ação principalmente pelo nome localizado resolvido pelo cliente e associado à linha `secondary.fishing`; IDs validados podem ser mantidos como evidência diagnóstica e otimização, nunca como lista universal presumida.
+
+Um segundo ciclo com `spellID = 45731` apareceu antes de uma tentativa anterior, mas não foi reproduzido no teste isolado com nomes habilitados. Ele permanece fora das regras de Pesca até que seu nome e contexto sejam observados diretamente.
 
 ### 13.7 Ganho desacoplado da tentativa
 

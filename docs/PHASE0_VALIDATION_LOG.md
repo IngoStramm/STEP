@@ -547,7 +547,7 @@ Arquivos originais em `World of Warcraft/_anniversary_/Screenshots/`.
 | Build | `0.1.0-alpha` |
 | Perícia | Fishing 325/375 |
 | Spell ID principal observado | `33095` |
-| Spell ID auxiliar observado | `45731` |
+| Spell ID auxiliar observado anteriormente | `45731`, não reproduzido no teste isolado |
 | Resultado geral | Parcialmente aprovado; ciclo bem-sucedido validado, identificação auxiliar e terminais ainda pendentes |
 
 ### Identificador e ciclo principal
@@ -562,7 +562,19 @@ UNIT_SPELLCAST_CHANNEL_STOP
 loot
 ```
 
-O `spellID` principal foi `33095`, o alvo em `UNIT_SPELLCAST_SENT` veio `nil` e cada tentativa recebeu novo `castGUID`. Foram observadas capturas consecutivas de `Barbed Gill Trout`, sempre depois de `CHANNEL_STOP`.
+O `spellID` principal foi `33095`, resolvido pelo cliente como `Fishing`. O alvo em `UNIT_SPELLCAST_SENT` veio `nil` e cada tentativa recebeu novo `castGUID`. Foram observadas capturas consecutivas de `Barbed Gill Trout`, sempre depois de `CHANNEL_STOP`.
+
+No teste isolado, os tempos monotônicos foram:
+
+```text
+152919.264 SENT / CHANNEL_START
+152919.265 SUCCEEDED
+152933.032 CHANNEL_STOP
+152933.281 LOOT_OPENED
+152933.348 LOOT_CLOSED
+```
+
+Portanto, `SUCCEEDED` ocorre no início do canal e não confirma captura nem encerramento da tentativa. O canal observado durou aproximadamente `13,768` segundos, e o loot abriu cerca de `0,249` segundo depois de `CHANNEL_STOP`.
 
 Isso invalida o uso de `7620` como identificador universal da ação: o tracker de Pesca precisa considerar os IDs associados aos graus da profissão ou outra identificação validada pelo nome resolvido no cliente.
 
@@ -577,12 +589,14 @@ UNIT_SPELLCAST_SUCCEEDED
 UNIT_SPELLCAST_STOP
 ```
 
-A função desse segundo ID não pode ser determinada apenas pelos argumentos numéricos. O modo de diagnóstico foi ajustado para acrescentar o nome da magia resolvido pelo próprio cliente aos próximos eventos.
+A função desse segundo ID não pode ser determinada apenas pelos argumentos numéricos. O modo de diagnóstico foi ajustado para acrescentar o nome da magia resolvido pelo próprio cliente aos próximos eventos. No teste isolado seguinte, `45731` não apareceu; por isso ele não será associado à Pesca sem nova evidência.
 
 ### Evidências
 
 - `WoWScrnShot_071126_140956.jpg`: falha inicial, ciclo auxiliar e primeira captura concluída.
 - `WoWScrnShot_071126_141003.jpg`: capturas canalizadas consecutivas e loot posterior.
+- `WoWScrnShot_071126_141631.jpg`: nome `Fishing` resolvido pelo cliente e início do retrato temporal.
+- `WoWScrnShot_071126_141637.jpg`: ciclo completo, `LOOT_OPENED` e `LOOT_CLOSED` com tempos monotônicos.
 
 Arquivos originais em `World of Warcraft/_anniversary_/Screenshots/`.
 
@@ -591,10 +605,12 @@ Arquivos originais em `World of Warcraft/_anniversary_/Screenshots/`.
 | Cenário | Estado após a rodada 8 |
 | --- | --- |
 | `spellID` principal da Pesca neste grau | Validado como `33095`. |
+| Nome de `33095` | Validado como `Fishing` pelo cliente. |
 | Ciclo canalizado bem-sucedido | Validado. |
 | Novo `castGUID` por tentativa | Validado. |
 | Loot posterior a `CHANNEL_STOP` | Validado. |
+| `SUCCEEDED` como encerramento | Rejeitado; ocorre no início do canal. |
 | Tentativa com `UNIT_SPELLCAST_FAILED` | Observada. |
-| Nome e função de `45731` | Pendente; novo diagnóstico mostrará o nome. |
+| Nome e função de `45731` | Pendente; não reproduzido no teste isolado. |
 | Cancelamento deliberado | Pendente de distinção. |
 | Timeout sem interação | Pendente. |
