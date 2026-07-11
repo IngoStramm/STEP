@@ -605,6 +605,15 @@ Para o cliente clássico, o tracker usa a janela ativa e funções clássicas, c
 
 Abrir `TRADE_SKILL_SHOW` ou `CRAFT_SHOW` apenas identifica o contexto. A medição começa somente com uma tentativa real do jogador.
 
+O teste de Engenharia no cliente `20506` confirmou que o contexto é indispensável:
+
+- a receita Rough Blasting Powder emitiu `spellID = 3918`, um ID da receita e não da profissão;
+- `UNIT_SPELLCAST_SENT` apresentou alvo `nil`;
+- `TRADE_SKILL_UPDATE` forneceu `Engineering 75/150`;
+- o evento `TRADE_SKILL_UPDATE` repetiu após a conclusão.
+
+Assim, uma produção deve ser associada à profissão ativa mantida pelo tracker, e não por uma tabela exaustiva de todos os `spellID` de receitas. Atualizações repetidas da janela devem ser coalescidas.
+
 ### 13.2 Produção
 
 Fluxo esperado:
@@ -621,7 +630,41 @@ Casting
 
 Produções em fila são somadas tentativa a tentativa. O tracker não assume a duração total da fila a partir da quantidade solicitada.
 
-### 13.3 Coleta
+### 13.3 Sequências validadas de produção
+
+Uma produção bem-sucedida de Rough Blasting Powder apresentou:
+
+```text
+UNIT_SPELLCAST_SENT
+UNIT_SPELLCAST_START
+UNIT_SPELLCAST_SUCCEEDED
+UNIT_SPELLCAST_STOP
+TRADE_SKILL_UPDATE
+TRADE_SKILL_UPDATE
+```
+
+Uma produção interrompida apresentou variação de ordem:
+
+```text
+UNIT_SPELLCAST_SENT
+UNIT_SPELLCAST_START
+UNIT_SPELLCAST_INTERRUPTED
+UNIT_SPELLCAST_STOP
+UNIT_SPELLCAST_INTERRUPTED
+UNIT_SPELLCAST_INTERRUPTED
+UNIT_SPELLCAST_INTERRUPTED
+```
+
+Consequências:
+
+- a ordem entre `STOP` e `INTERRUPTED` não é fixa entre tipos de atividade;
+- o primeiro evento terminal encerra o relógio monotônico da tentativa;
+- eventos posteriores com o mesmo `castGUID` podem refinar o resultado, mas nunca somar nova duração ou novo evento;
+- `SUCCEEDED` e `STOP` podem compartilhar o mesmo instante;
+- cada tentativa observada recebeu novo `castGUID`;
+- a fila de produção ainda precisa ser validada separadamente com quantidade maior que um.
+
+### 13.4 Coleta
 
 O registro manterá uma tabela validada de `spellID -> skillKey` para Mineração, Herborismo e Esfolamento.
 
@@ -635,7 +678,7 @@ Os IDs e ranks alternativos, especialmente Esfolamento, devem ser capturados e c
 
 `2575` identifica a profissão ou habilidade base de Mineração em referências locais, mas não foi o `spellID` emitido pela ação de minerar no cliente testado. STEP deve usar `2576` para reconhecer a tentativa observada.
 
-### 13.4 Sequências validadas de Mineração
+### 13.5 Sequências validadas de Mineração
 
 Uma tentativa bem-sucedida em Veio de Cobre apresentou:
 
@@ -667,7 +710,7 @@ Todos os eventos da mesma tentativa preservaram o mesmo `castGUID`, e tentativas
 - o primeiro terminal fecha o tempo; terminais posteriores apenas refinam o resultado, sem acumular ou registrar uma segunda tentativa;
 - um cache curto de GUIDs encerrados impede duplicação.
 
-### 13.5 Pesca
+### 13.6 Pesca
 
 Pesca usa uma pequena máquina de estados própria:
 
@@ -679,7 +722,7 @@ idle -> casting -> waiting -> looting -> idle
 
 O período `waiting` faz parte do tempo ativo. Como os sinais de sucesso e cancelamento podem variar, serão correlacionados lançamento, `UNIT_SPELLCAST_*`, loot e timeout. O timeout deve apenas encerrar a tentativa, nunca inventar sucesso.
 
-### 13.6 Ganho desacoplado da tentativa
+### 13.7 Ganho desacoplado da tentativa
 
 O ganho continua sendo detectado pelo `SkillScanner`, não pelo evento de fabricação ou coleta. O `ProfessionTracker` mede atividade; o scanner confirma a alteração numérica. Isso evita registrar sucesso falso quando uma tentativa não aumenta a perícia.
 
@@ -1169,7 +1212,7 @@ Se o teste indicar mudança de fluxo, padrão, dado armazenado ou critério de a
 | Payload de mão secundária variar no cliente | Layouts de `SWING_DAMAGE` e `SWING_MISSED` validados para mão principal; captura com `isOffHand = true` ainda pendente. |
 | Varinha usar subevento inesperado | Instrumentar `RANGE_*` e `SPELL_*`; aceitar só o caminho comprovado. |
 | Arma de punho ser confundida com Desarmado | Separar subclasse de item e mão vazia no `EquipmentResolver`. |
-| Eventos de produção variarem entre janelas | Encapsular contexto TradeSkill/Craft e testar ambos. |
+| Eventos de produção variarem entre janelas | Engenharia validada com `TRADE_SKILL_UPDATE`; janela Craft e outras profissões ainda pendentes. |
 | Coleta possuir ranks/spellIDs alternativos | Mineração validada com `2576`; Herborismo, Esfolamento e possíveis IDs alternativos ainda exigem captura. |
 | Pesca não emitir um único encerramento confiável | Correlacionar cast, loot, cancelamento e timeout. |
 | Desconexão abrupta perder delta recente | Checkpoint somente enquanto ativo. |

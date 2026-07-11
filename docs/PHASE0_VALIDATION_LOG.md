@@ -84,7 +84,7 @@ Arquivos originais em `World of Warcraft/_anniversary_/Screenshots/`.
 | Arma de punho versus Desarmado | Pendente. |
 | Armas à distância e Varinhas | Pendente. |
 | Eventos de ataque e Defesa | Parcialmente validados na rodada 2; off-hand, ataques à distância e outros resultados permanecem pendentes. |
-| Produção e fila de produção | Pendente. |
+| Produção e fila de produção | Produção simples e interrupção validadas na rodada 5; fila permanece pendente. |
 | Mineração, Herborismo e Esfolamento | Mineração validada na rodada 4; Herborismo e Esfolamento permanecem pendentes. |
 | Pesca | Pendente. |
 | Ganho real de perícia | Validado para Defesa e Machado de Duas Mãos na rodada 3. |
@@ -320,3 +320,96 @@ Arquivos originais em `World of Warcraft/_anniversary_/Screenshots/`.
 | Novo `castGUID` por tentativa | Validado. |
 | Eventos terminais duplicados | Confirmados; deduplicação obrigatória. |
 | Ganho de Mineração | Não ocorreu nesta rodada; pendente. |
+
+## Rodada 5 — Produção de Engenharia
+
+| Campo | Valor |
+| --- | --- |
+| Data | 2026-07-11 |
+| Build | `0.1.0-alpha` |
+| Profissão | Engineering 75/150 |
+| Receita | Rough Blasting Powder |
+| Spell ID observado | `3918` |
+| Resultado geral | Aprovado para contexto, sucesso e interrupção |
+
+### Associação à profissão
+
+O cast apresentou:
+
+```text
+UNIT_SPELLCAST_SENT
+target=nil
+spellID=3918
+```
+
+Depois da produção, o contexto apresentou:
+
+```text
+TRADE_SKILL_UPDATE trade=Engineering 75/150
+TRADE_SKILL_UPDATE trade=Engineering 75/150
+```
+
+Conclusões:
+
+- `3918` identifica a receita Rough Blasting Powder, não Engenharia como um todo;
+- o alvo do cast pode ser `nil` em produção;
+- o tracker deve associar a tentativa ao contexto ativo `Engineering`;
+- `TRADE_SKILL_UPDATE` pode repetir e não deve criar tentativas ou ganhos duplicados.
+
+### Produção bem-sucedida
+
+Foi observada:
+
+```text
+UNIT_SPELLCAST_SENT
+UNIT_SPELLCAST_START
+UNIT_SPELLCAST_SUCCEEDED
+UNIT_SPELLCAST_STOP
+TRADE_SKILL_UPDATE
+TRADE_SKILL_UPDATE
+```
+
+`SUCCEEDED` e `STOP` compartilharam o mesmo instante na captura, e o item Rough Blasting Powder foi criado.
+
+### Produção interrompida
+
+Foi observada:
+
+```text
+UNIT_SPELLCAST_SENT
+UNIT_SPELLCAST_START
+UNIT_SPELLCAST_INTERRUPTED
+UNIT_SPELLCAST_STOP
+UNIT_SPELLCAST_INTERRUPTED
+UNIT_SPELLCAST_INTERRUPTED
+UNIT_SPELLCAST_INTERRUPTED
+```
+
+Ao contrário da Mineração interrompida observada anteriormente, o primeiro `INTERRUPTED` ocorreu antes de `STOP`. Portanto, o fechamento não pode depender de uma ordem fixa. Todos os terminais do mesmo `castGUID` pertencem à mesma tentativa.
+
+### Fila
+
+As capturas mostram tentativas diferentes com novos `castGUID`, mas a quantidade da interface estava em `1`. Isso não comprova uma fila automática com quantidade maior que um. O cenário permanece pendente.
+
+### Evidências
+
+- `WoWScrnShot_071126_134100.jpg`: interrupção e conclusão.
+- `WoWScrnShot_071126_134108.jpg`: terminais duplicados e nova tentativa.
+- `WoWScrnShot_071126_134121.jpg`: ordem da interrupção e sucesso.
+- `WoWScrnShot_071126_134126.jpg`: contexto `Engineering 75/150` após produção.
+
+Arquivos originais em `World of Warcraft/_anniversary_/Screenshots/`.
+
+### Atualização da matriz
+
+| Cenário | Estado após a rodada 5 |
+| --- | --- |
+| Contexto `TRADE_SKILL` de Engenharia | Validado. |
+| Receita com `spellID` próprio | Validada. |
+| Produção simples concluída | Validada. |
+| Produção interrompida | Validada. |
+| Ordem variável entre `STOP` e `INTERRUPTED` | Validada. |
+| Terminais duplicados por `castGUID` | Confirmados. |
+| `TRADE_SKILL_UPDATE` duplicado | Confirmado. |
+| Fila automática com quantidade maior que um | Pendente. |
+| Janela alternativa `CRAFT` | Pendente. |
