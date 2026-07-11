@@ -83,10 +83,93 @@ Arquivos originais em `World of Warcraft/_anniversary_/Screenshots/`.
 | Armas de categorias diferentes | Pendente. |
 | Arma de punho versus Desarmado | Pendente. |
 | Armas à distância e Varinhas | Pendente. |
-| Eventos de ataque e Defesa | Pendente. |
+| Eventos de ataque e Defesa | Parcialmente validados na rodada 2; off-hand, ataques à distância e outros resultados permanecem pendentes. |
 | Produção e fila de produção | Pendente. |
 | Mineração, Herborismo e Esfolamento | Pendente. |
 | Pesca | Pendente. |
 | Ganho real de perícia | Pendente. |
 | Mudança apenas do máximo | Pendente. |
 | Abandono e reaprendizado | Pendente. |
+
+## Rodada 2 — Ataque físico e tentativas recebidas
+
+| Campo | Valor |
+| --- | --- |
+| Data | 2026-07-11 |
+| Build | `0.1.0-alpha` |
+| Arma | Machado de Duas Mãos já resolvido como `combat.two_handed_axes` |
+| Alvo | Young Moonkin |
+| Resultado geral | Aprovado para ataque da mão principal e tentativas físicas recebidas observadas |
+
+### Ataque da mão principal
+
+Foi observado:
+
+```text
+SWING_DAMAGE src=player dst=other
+payload={12=108, 13=-1, 14=1, ..., 21=false}
+```
+
+Interpretação:
+
+- o golpe físico comum usa `SWING_DAMAGE`;
+- `isOffHand` está no campo absoluto `21`, décimo campo específico do payload;
+- `false` confirma mão principal;
+- combinado ao equipamento da rodada anterior, o pulso deve ser atribuído a `combat.two_handed_axes`.
+
+### Tentativas recebidas para Defesa
+
+Foram observados:
+
+```text
+SWING_DAMAGE src=other dst=player
+payload={12=13, 13=-1, 14=1, ..., 21=false}
+
+SWING_MISSED src=other dst=player
+payload={12=PARRY, 13=false}
+```
+
+Interpretação:
+
+- `SWING_DAMAGE` confirma uma tentativa física recebida com dano;
+- `SWING_MISSED` confirma uma tentativa recebida aparada;
+- em `SWING_MISSED`, `missType` está no campo absoluto `12` e `isOffHand` no `13`;
+- ambos podem renovar a janela de atividade de `combat.defense` quando o destino for o jogador.
+
+### Separação de dano mágico
+
+No mesmo combate foram observados `SPELL_DAMAGE` do Paladino:
+
+```text
+spellID=20281 Judgement of Righteousness
+spellID=25739 Seal of Righteousness
+```
+
+Esses eventos não identificam a tentativa da arma. O rastreador ofensivo comum deve ignorar `SPELL_DAMAGE`, preservando-o no diagnóstico apenas para a futura validação específica de Varinhas.
+
+### Ciclo de combate e loot
+
+- `PLAYER_REGEN_ENABLED` confirmou o encerramento do combate.
+- `LOOT_OPENED` e `LOOT_CLOSED` apareceram mais de uma vez, reforçando que correlações futuras de coleta e Pesca devem tolerar eventos duplicados.
+
+### Evidências
+
+- `WoWScrnShot_071126_123236.jpg`: golpes recebidos, aparo e eventos de lançamento.
+- `WoWScrnShot_071126_123255.jpg`: golpe da mão principal, dano mágico separado e encerramento do combate.
+
+Arquivos originais em `World of Warcraft/_anniversary_/Screenshots/`.
+
+### Atualização da matriz
+
+| Cenário | Estado após a rodada 2 |
+| --- | --- |
+| Ataque físico da mão principal com dano | Validado. |
+| Associação do ataque ao Machado de Duas Mãos equipado | Validada. |
+| `SWING_DAMAGE` recebido para Defesa | Validado. |
+| `SWING_MISSED` recebido com `PARRY` para Defesa | Validado. |
+| Separação entre golpe de arma e magias do Paladino | Validada. |
+| Encerramento por `PLAYER_REGEN_ENABLED` | Validado. |
+| Ataque da mão principal que erra | Pendente. |
+| Ataque da mão secundária com `isOffHand = true` | Pendente. |
+| Outros resultados recebidos: dodge, block e miss | Pendente. |
+| Ataques à distância e Varinhas | Pendente. |

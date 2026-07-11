@@ -540,6 +540,13 @@ Para `SWING_*`:
 - mão principal vazia pode resolver para Desarmado;
 - payload não confiável não será atribuído por palpite.
 
+Validação no cliente `20506` em 2026-07-11:
+
+- `SWING_DAMAGE` usa `isOffHand` no décimo campo específico do payload, correspondente ao campo absoluto `21` de `CombatLogGetCurrentEventInfo()`;
+- `SWING_MISSED` usa `missType` no primeiro campo específico e `isOffHand` no segundo, correspondentes aos campos absolutos `12` e `13`;
+- um ataque da mão principal com Machado de Duas Mãos retornou `isOffHand = false` em `SWING_DAMAGE`;
+- o parser deve possuir layouts separados por subevento e nunca reutilizar a posição de `isOffHand` de `SWING_DAMAGE` em `SWING_MISSED`.
+
 Para `RANGE_*`:
 
 - a perícia vem do slot de longo alcance;
@@ -547,6 +554,8 @@ Para `RANGE_*`:
 - a forma exata como Varinhas aparece no log precisa de teste.
 
 `SPELL_*` só participa quando uma tabela validada de ataques de arma exigir esse caminho. Magias normais não devem treinar perícia de arma por engano.
+
+O teste com Paladino confirmou `SPELL_DAMAGE` separado para Julgamento e Selo da Retidão durante o mesmo combate em que ocorreu `SWING_DAMAGE`. Esses eventos de magia são ruído para a perícia da arma e devem ser ignorados pelo rastreador ofensivo comum. Varinhas permanecem como a única exceção candidata até validação específica.
 
 ### 12.3 Defesa
 
@@ -558,6 +567,13 @@ Defesa recebe pulsos apenas quando:
 - o evento representar uma tentativa física relevante recebida.
 
 A proposta inicial inclui `SWING_*` e `RANGE_*`. Eventos `SPELL_*` ficam excluídos até comprovação no cliente de que treinam Defesa.
+
+O cliente `20506` confirmou tentativas físicas recebidas com destino no jogador em:
+
+- `SWING_DAMAGE`, para um golpe que causou dano;
+- `SWING_MISSED` com `missType = "PARRY"`, para um ataque aparado pelo jogador.
+
+Ambos são sinais válidos de tentativa recebida para renovar a janela de atividade de Defesa. Outros resultados de erro ainda precisam ser observados, mas usar `SWING_DAMAGE` e `SWING_MISSED` como conjunto inicial deixou de ser apenas uma hipótese.
 
 ### 12.4 Troca de equipamento
 
@@ -1106,7 +1122,7 @@ Se o teste indicar mudança de fluxo, padrão, dado armazenado ou critério de a
 
 | Risco | Tratamento |
 | --- | --- |
-| Payload de mão secundária variar no cliente | Capturar payload real antes de fechar o parser. |
+| Payload de mão secundária variar no cliente | Layouts de `SWING_DAMAGE` e `SWING_MISSED` validados para mão principal; captura com `isOffHand = true` ainda pendente. |
 | Varinha usar subevento inesperado | Instrumentar `RANGE_*` e `SPELL_*`; aceitar só o caminho comprovado. |
 | Arma de punho ser confundida com Desarmado | Separar subclasse de item e mão vazia no `EquipmentResolver`. |
 | Eventos de produção variarem entre janelas | Encapsular contexto TradeSkill/Craft e testar ambos. |
