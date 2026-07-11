@@ -86,7 +86,7 @@ Arquivos originais em `World of Warcraft/_anniversary_/Screenshots/`.
 | Eventos de ataque e Defesa | Parcialmente validados na rodada 2; off-hand, ataques à distância e outros resultados permanecem pendentes. |
 | Produção e fila de produção | Produção simples, interrupção e fila automática validadas nas rodadas 5 e 6. |
 | Mineração, Herborismo e Esfolamento | Mineração validada na rodada 4; Herborismo e Esfolamento permanecem pendentes. |
-| Pesca | Parcialmente validada na rodada 8. |
+| Pesca | Sucesso, cancelamento e timeout validados na rodada 8; modificadores validados na rodada 9. |
 | Ganho real de perícia | Validado para Defesa e Machado de Duas Mãos na rodada 3. |
 | Mudança apenas do máximo | Pendente. |
 | Abandono e reaprendizado | Pendente. |
@@ -548,7 +548,7 @@ Arquivos originais em `World of Warcraft/_anniversary_/Screenshots/`.
 | Perícia | Fishing 325/375 |
 | Spell ID principal observado | `33095` |
 | Spell ID de acessório observado | `45731` — `Sharpened Fish Hook` |
-| Resultado geral | Parcialmente aprovado; ciclo bem-sucedido e acessório identificados, terminais ainda pendentes |
+| Resultado geral | Aprovado para sucesso, cancelamento por movimento e timeout natural observados |
 
 ### Identificador e ciclo principal
 
@@ -602,6 +602,7 @@ O usuário confirmou que existem diversos itens com graus diferentes de melhoria
 - `WoWScrnShot_071126_141631.jpg`: nome `Fishing` resolvido pelo cliente e início do retrato temporal.
 - `WoWScrnShot_071126_141637.jpg`: ciclo completo, `LOOT_OPENED` e `LOOT_CLOSED` com tempos monotônicos.
 - `WoWScrnShot_071126_142224.jpg`: cancelamento deliberado por movimento sem evento explícito de falha e sem loot.
+- `WoWScrnShot_071126_142644.jpg`: timeout natural após o canal completo, sem evento explícito de falha e sem loot.
 
 Arquivos originais em `World of Warcraft/_anniversary_/Screenshots/`.
 
@@ -617,9 +618,9 @@ Arquivos originais em `World of Warcraft/_anniversary_/Screenshots/`.
 | `SUCCEEDED` como encerramento | Rejeitado; ocorre no início do canal. |
 | Tentativa com `UNIT_SPELLCAST_FAILED` | Observada. |
 | Nome e função de `45731` | Validado como aplicação de `Sharpened Fish Hook`; excluído das tentativas. |
-| Regra para outros modificadores de profissão | Definida genericamente; alteração de `temporary`/`modifier` ainda requer validação no cliente. |
+| Regra para outros modificadores de profissão | Validada para Pesca na rodada 9; generalização permanece definida por categoria. |
 | Cancelamento deliberado | Validado como `CHANNEL_STOP` sem `FAILED`, `INTERRUPTED` ou loot. |
-| Timeout sem interação | Pendente. |
+| Timeout sem interação | Validado como `CHANNEL_STOP` após o canal completo, sem loot. |
 
 ### Cancelamento deliberado por movimento
 
@@ -634,3 +635,59 @@ Ao mover o personagem durante o canal, foi observado:
 O canal durou aproximadamente `1,917` segundo. Não houve `UNIT_SPELLCAST_FAILED`, `UNIT_SPELLCAST_INTERRUPTED`, `LOOT_OPENED` ou `LOOT_CLOSED`.
 
 Conclusão: `CHANNEL_STOP` não distingue captura e cancelamento. STEP deve aguardar uma janela curta de correlação com loot. Sem loot, registra `no_loot` com duração encerrada no horário original de `CHANNEL_STOP`, sem somar o tempo da espera técnica.
+
+### Timeout natural sem interação
+
+Ao deixar a tentativa terminar sem interagir com o peixe, foi observado:
+
+```text
+153529.724 UNIT_SPELLCAST_SENT
+153529.725 UNIT_SPELLCAST_CHANNEL_START
+153529.728 UNIT_SPELLCAST_SUCCEEDED
+153551.736 UNIT_SPELLCAST_CHANNEL_STOP
+```
+
+O canal durou aproximadamente `22,011` segundos. Assim como no cancelamento por movimento, não houve `UNIT_SPELLCAST_FAILED`, `UNIT_SPELLCAST_INTERRUPTED`, `LOOT_OPENED` ou `LOOT_CLOSED`.
+
+Cancelamento e timeout têm a mesma forma terminal; a diferença observável é se o canal parou antes ou alcançou seu término previsto. Ambos acumulam tempo ativo e podem ser persistidos como `no_loot`. Caso a interface precise distinguir o motivo, STEP comparará o instante de `CHANNEL_STOP` com o término previsto capturado por `UnitChannelInfo("player")`, sem usar um limite fixo derivado deste teste.
+
+## Rodada 9 — Modificadores agregados de profissão
+
+| Campo | Antes da melhoria | Depois da melhoria |
+| --- | --- | --- |
+| Perícia | Fishing | Fishing |
+| Valor-base | `325/375` | `325/375` |
+| `temporary` | `0` | `0` |
+| `modifier` | `23` | `123` |
+| Diferença do modificador | — | `+100` |
+
+### Resultado
+
+A aplicação do `Sharpened Fish Hook`, cujo efeito informado é `+100` de Pesca, aumentou exatamente o campo `modifier` de `23` para `123`. O valor-base, o máximo e `temporary` permaneceram inalterados.
+
+Conclusões:
+
+- o cliente agrega no mesmo `skillModifier` o bônus que já estava ativo e a melhoria temporária aplicada à vara;
+- STEP não precisa identificar cada item para exibir o bônus total;
+- a cor e o progresso continuam baseados em `325/375`;
+- o tooltip pode apresentar o modificador agregado `+123`;
+- a mudança de `modifier` não é um ganho permanente e não cria evento no histórico.
+
+### Evidências
+
+- `WoWScrnShot_071126_142424.jpg`: retrato anterior com `secondary.fishing` em `325/375`, `temp=0`, `modifier=23`.
+- `WoWScrnShot_071126_142447.jpg`: confirmação do mesmo estado anterior.
+- `WoWScrnShot_071126_142458.jpg`: retrato posterior com `temp=0`, `modifier=123`.
+- `WoWScrnShot_071126_142503.jpg`: confirmação do estado posterior.
+
+Arquivos originais em `World of Warcraft/_anniversary_/Screenshots/`.
+
+### Atualização da matriz
+
+| Cenário | Estado após a rodada 9 |
+| --- | --- |
+| Leitura do bônus agregado de Pesca | Validada em `modifier`. |
+| Soma do efeito `+100` ao modificador existente | Validada: `23 -> 123`. |
+| Preservação de `current` e `maximum` | Validada. |
+| Preservação de `temporary` neste efeito | Validada em `0`. |
+| Mudança automática da interface após o efeito | Pendente para a implementação do painel. |

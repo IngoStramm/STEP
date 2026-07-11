@@ -603,6 +603,8 @@ Modificadores de profissão formam um eixo separado da atividade. Consumíveis, 
 
 O `SkillScanner` atualiza esses campos para o tooltip e demais contextos visuais. Uma alteração apenas em `temporary` ou `modifier` não muda a cor de progresso, não cria `gainEvent` e não entra no tempo ativo. O tracker exige sempre a ação real de produção, coleta ou Pesca; proximidade temporal e relação temática com a profissão não bastam.
 
+O cliente `20506` confirmou a agregação no campo `skillModifier`: Pesca permaneceu em `325/375` com `temporary = 0`, enquanto `modifier` mudou de `23` para `123` após a aplicação do `Sharpened Fish Hook` de `+100`. A interface pode exibir o total `+123` sem conhecer as fontes individuais. O valor-base permanece canônico para progresso, cores, ganhos e máximo.
+
 ### 13.1 Contexto de produção
 
 Para o cliente clássico, o tracker usa a janela ativa e funções clássicas, como `GetTradeSkillLine()` e `GetCraftDisplaySkillLine()`, encapsuladas e testadas antes do uso.
@@ -756,6 +758,8 @@ Um cancelamento deliberado por movimento apresentou somente:
 ```
 
 Não houve `FAILED`, `INTERRUPTED` nem loot. Assim, `CHANNEL_STOP` é ambíguo: ao recebê-lo, o tracker registra o instante de fim do canal e entra em `awaiting_loot`. Se `LOOT_OPENED` chegar dentro de uma pequena janela de correlação, a tentativa é concluída com coleta e inclui essa espera curta no tempo ativo. Se a janela expirar sem loot, a tentativa termina como `no_loot`, usando o instante de `CHANNEL_STOP` para a duração; o tempo da janela técnica não é contabilizado. Eventos explícitos posteriores podem refinar o motivo sem duplicar a tentativa.
+
+Um timeout natural sem interação apresentou a mesma sequência, também sem loot, mas o canal durou `22,011` segundos (`153529.725 -> 153551.736`), em contraste com os `1,917` segundo do cancelamento por movimento. O tracker não usará esses valores como limites fixos. No `CHANNEL_START`, ele captura `startTime` e `endTime` de `UnitChannelInfo("player")`; no `CHANNEL_STOP`, pode comparar o término real com o previsto para refinar `no_loot` em `cancelled` ou `timeout`. Essa distinção é metadado e não altera o tempo ativo acumulado.
 
 O ID da ação é dependente do grau aprendido: `33095` foi observado no personagem com Pesca `325/375` e resolvido pelo cliente como `Fishing`, enquanto `7620` é apenas uma referência de grau inicial e não serve como ID universal. O tracker deverá reconhecer a ação principalmente pelo nome localizado resolvido pelo cliente e associado à linha `secondary.fishing`; IDs validados podem ser mantidos como evidência diagnóstica e otimização, nunca como lista universal presumida.
 
