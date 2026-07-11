@@ -601,6 +601,7 @@ O usuário confirmou que existem diversos itens com graus diferentes de melhoria
 - `WoWScrnShot_071126_141003.jpg`: capturas canalizadas consecutivas e loot posterior.
 - `WoWScrnShot_071126_141631.jpg`: nome `Fishing` resolvido pelo cliente e início do retrato temporal.
 - `WoWScrnShot_071126_141637.jpg`: ciclo completo, `LOOT_OPENED` e `LOOT_CLOSED` com tempos monotônicos.
+- `WoWScrnShot_071126_142224.jpg`: cancelamento deliberado por movimento sem evento explícito de falha e sem loot.
 
 Arquivos originais em `World of Warcraft/_anniversary_/Screenshots/`.
 
@@ -617,5 +618,19 @@ Arquivos originais em `World of Warcraft/_anniversary_/Screenshots/`.
 | Tentativa com `UNIT_SPELLCAST_FAILED` | Observada. |
 | Nome e função de `45731` | Validado como aplicação de `Sharpened Fish Hook`; excluído das tentativas. |
 | Regra para outros modificadores de profissão | Definida genericamente; alteração de `temporary`/`modifier` ainda requer validação no cliente. |
-| Cancelamento deliberado | Pendente de distinção. |
+| Cancelamento deliberado | Validado como `CHANNEL_STOP` sem `FAILED`, `INTERRUPTED` ou loot. |
 | Timeout sem interação | Pendente. |
+
+### Cancelamento deliberado por movimento
+
+Ao mover o personagem durante o canal, foi observado:
+
+```text
+153296.350 UNIT_SPELLCAST_SENT / UNIT_SPELLCAST_CHANNEL_START
+153296.351 UNIT_SPELLCAST_SUCCEEDED
+153298.267 UNIT_SPELLCAST_CHANNEL_STOP
+```
+
+O canal durou aproximadamente `1,917` segundo. Não houve `UNIT_SPELLCAST_FAILED`, `UNIT_SPELLCAST_INTERRUPTED`, `LOOT_OPENED` ou `LOOT_CLOSED`.
+
+Conclusão: `CHANNEL_STOP` não distingue captura e cancelamento. STEP deve aguardar uma janela curta de correlação com loot. Sem loot, registra `no_loot` com duração encerrada no horário original de `CHANNEL_STOP`, sem somar o tempo da espera técnica.

@@ -747,6 +747,16 @@ O alvo de `UNIT_SPELLCAST_SENT` veio `nil`, cada tentativa recebeu novo `castGUI
 
 O período canalizado e a espera pelo loot fazem parte do tempo ativo. Serão correlacionados lançamento, `UNIT_SPELLCAST_*`, loot e timeout. No teste isolado, `SENT` e `CHANNEL_START` ocorreram em `152919.264`, `SUCCEEDED` em `152919.265`, `CHANNEL_STOP` em `152933.032` e `LOOT_OPENED` em `152933.281`. Portanto, `SUCCEEDED` apenas confirma que o lançamento foi aceito; não encerra o relógio nem prova captura. `CHANNEL_STOP` encerra o canal, e o loot posterior é a evidência de captura. O timeout deve apenas encerrar a tentativa, nunca inventar sucesso.
 
+Um cancelamento deliberado por movimento apresentou somente:
+
+```text
+153296.350 SENT / CHANNEL_START
+153296.351 SUCCEEDED
+153298.267 CHANNEL_STOP
+```
+
+Não houve `FAILED`, `INTERRUPTED` nem loot. Assim, `CHANNEL_STOP` é ambíguo: ao recebê-lo, o tracker registra o instante de fim do canal e entra em `awaiting_loot`. Se `LOOT_OPENED` chegar dentro de uma pequena janela de correlação, a tentativa é concluída com coleta e inclui essa espera curta no tempo ativo. Se a janela expirar sem loot, a tentativa termina como `no_loot`, usando o instante de `CHANNEL_STOP` para a duração; o tempo da janela técnica não é contabilizado. Eventos explícitos posteriores podem refinar o motivo sem duplicar a tentativa.
+
 O ID da ação é dependente do grau aprendido: `33095` foi observado no personagem com Pesca `325/375` e resolvido pelo cliente como `Fishing`, enquanto `7620` é apenas uma referência de grau inicial e não serve como ID universal. O tracker deverá reconhecer a ação principalmente pelo nome localizado resolvido pelo cliente e associado à linha `secondary.fishing`; IDs validados podem ser mantidos como evidência diagnóstica e otimização, nunca como lista universal presumida.
 
 O ciclo separado com `spellID = 45731` foi identificado como a aplicação do item `Sharpened Fish Hook`, que concede `+100` de Pesca por `10` minutos quando aplicado à vara. Trata-se de uma melhoria de equipamento, não de uma tentativa de Pesca, e deve ser ignorado pelo cronômetro segundo a regra geral de modificadores. O mesmo vale para outros itens, graus de melhoria e efeitos equivalentes de Pesca ou de qualquer outra profissão.
