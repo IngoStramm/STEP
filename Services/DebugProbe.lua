@@ -9,6 +9,29 @@ local function IsPlayerUnit(unit)
     return unit == "player"
 end
 
+local function ResolveSpellName(spellID)
+    spellID = tonumber(spellID)
+    if not spellID then
+        return nil
+    end
+
+    if C_Spell and C_Spell.GetSpellName then
+        local ok, name = pcall(C_Spell.GetSpellName, spellID)
+        if ok and name then
+            return name
+        end
+    end
+
+    if GetSpellInfo then
+        local ok, name = pcall(GetSpellInfo, spellID)
+        if ok and name then
+            return name
+        end
+    end
+
+    return nil
+end
+
 function DebugProbe:GetConfig()
     return STEP.Database and STEP.Database:GetDebugConfig()
 end
@@ -120,8 +143,11 @@ function DebugProbe:HandleEvent(event, ...)
             return
         end
 
+        local spellID = event == "UNIT_SPELLCAST_SENT" and args[4] or args[3]
+        local spellName = ResolveSpellName(spellID)
+        local spellContext = spellName and string.format(" spell=%s", tostring(spellName)) or ""
         local config = self:GetConfig()
-        self:Record("cast", event .. " {" .. STEP.Util:FormatPacked(args, 1, math.min(args.n, 7)) .. "}", config and config.liveCasts)
+        self:Record("cast", event .. spellContext .. " {" .. STEP.Util:FormatPacked(args, 1, math.min(args.n, 7)) .. "}", config and config.liveCasts)
         return
     end
 

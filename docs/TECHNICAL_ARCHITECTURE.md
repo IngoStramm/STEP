@@ -681,7 +681,7 @@ Identificadores de ação:
 
 - Mineração: `2576`, validado no cliente `20506`;
 - Herborismo: `2366`, ainda pendente de validação;
-- Pesca: `7620`, ainda pendente de validação.
+- Pesca: `33095`, observado no personagem com Pesca `325/375`; `7620` não pode ser tratado como identificador único da ação.
 
 Os IDs e ranks alternativos, especialmente Esfolamento, devem ser capturados e confirmados no modo de diagnóstico antes da implementação ser considerada completa.
 
@@ -724,12 +724,26 @@ Todos os eventos da mesma tentativa preservaram o mesmo `castGUID`, e tentativas
 Pesca usa uma pequena máquina de estados própria:
 
 ```text
-idle -> casting -> waiting -> looting -> idle
-                 -> cancelled -> idle
-                 -> timeout -> idle
+idle -> channeling -> awaiting_loot -> looted -> idle
+          |                \-> timeout -> idle
+          \-> failed/cancelled -> idle
 ```
 
-O período `waiting` faz parte do tempo ativo. Como os sinais de sucesso e cancelamento podem variar, serão correlacionados lançamento, `UNIT_SPELLCAST_*`, loot e timeout. O timeout deve apenas encerrar a tentativa, nunca inventar sucesso.
+No cliente validado, tentativas concluídas emitiram:
+
+```text
+UNIT_SPELLCAST_SENT
+UNIT_SPELLCAST_CHANNEL_START
+UNIT_SPELLCAST_SUCCEEDED
+UNIT_SPELLCAST_CHANNEL_STOP
+loot
+```
+
+O alvo de `UNIT_SPELLCAST_SENT` veio `nil`, cada tentativa recebeu novo `castGUID` e o loot apareceu depois de `CHANNEL_STOP`. Uma tentativa inicial também mostrou `UNIT_SPELLCAST_FAILED`.
+
+O período canalizado e a espera pelo loot fazem parte do tempo ativo. Serão correlacionados lançamento, `UNIT_SPELLCAST_*`, loot e timeout; `SUCCEEDED` confirma a conclusão do canal, mas o loot continua sendo a evidência de captura. O timeout deve apenas encerrar a tentativa, nunca inventar sucesso.
+
+O ID da ação é dependente do grau aprendido: `33095` foi observado no personagem com Pesca `325/375`, enquanto `7620` é apenas uma referência de grau inicial e não serve como ID universal. O tracker deverá reconhecer uma lista validada de IDs de grau e usar o nome da magia resolvido pelo cliente como evidência diagnóstica. Um segundo ciclo com `spellID = 45731` apareceu antes de uma tentativa e ainda precisa ser identificado antes de entrar nas regras de produção.
 
 ### 13.7 Ganho desacoplado da tentativa
 
