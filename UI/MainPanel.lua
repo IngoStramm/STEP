@@ -240,7 +240,14 @@ function MainPanel:Refresh()
     return model
 end
 
-function MainPanel:OnStateChanged()
+function MainPanel:OnStateChanged(payload)
+    for index = 1, payload and payload.changes and #payload.changes or 0 do
+        local change = payload.changes[index]
+        if change.scope == "general" and change.path == "panel.scale" then
+            self:ApplyPosition()
+            break
+        end
+    end
     self:Refresh()
 end
 
@@ -250,6 +257,10 @@ function MainPanel:Initialize()
     end
     if not UIParent or type(CreateFrame) ~= "function" then
         return false
+    end
+
+    if STEP.ConfigStore:Get("panel.startExpanded") == true then
+        STEP.ConfigStore:Set("panel.expanded", true, "startup")
     end
 
     local template = BackdropTemplateMixin and "BackdropTemplate" or nil
@@ -307,7 +318,9 @@ function MainPanel:Initialize()
     end)
     header:SetScript("OnClick", function(_, button)
         if button == "RightButton" then
-            STEP:Print(STEP:GetText("PANEL_CONFIG_PENDING"))
+            if STEP.ConfigWindow then
+                STEP.ConfigWindow:Open()
+            end
             return
         end
         if self.suppressToggle then

@@ -2,7 +2,7 @@
 
 STEP is a World of Warcraft Anniversary / Burning Crusade Classic addon for tracking learned weapon and profession skill progress in a compact, configurable panel.
 
-The Phase 1 data core is implemented and validated in game. **Phase 2** now includes the pure `ViewModel` and the first visual main-panel slice: compact/expanded modes, localized rows, progress colors, equipped-weapon highlighting, tooltips, dragging, locking, and persisted position. Configuration surfaces remain in progress.
+The Phase 1 data core is implemented and validated in game. **Phase 2** now includes the pure `ViewModel`, the validated main panel, and the first configuration slice. Native game options and a synchronized movable window expose general panel behavior plus per-skill visibility, logging, and notification participation.
 
 ## Planned features
 
@@ -19,6 +19,8 @@ The Phase 1 data core is implemented and validated in game. **Phase 2** now incl
 - `/step` — Show or hide the progress panel.
 - `/step expand|compact|toggle` — Change compact/expanded state.
 - `/step show|hide|lock|reset` — Control visibility, movement lock, and position.
+- `/step config` — Open the movable standalone configuration window.
+- `/step options` — Open STEP in the game's AddOns settings.
 - `/step help` — List commands.
 - `/step status` — Show diagnostic state.
 - `/step scan` — Scan learned skills.

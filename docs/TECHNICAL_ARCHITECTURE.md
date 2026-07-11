@@ -1344,6 +1344,8 @@ O `ViewModel` puro foi implementado com testes de visibilidade, resumo, categori
 
 A primeira rodada visual do `MainPanel` foi aprovada no cliente `20506`, incluindo compacto, expandido, cores, equipamento, tooltip, arraste, persistência, bloqueio e visibilidade. As evidências estão em `docs/PHASE2_VALIDATION_LOG.md`.
 
+A primeira fatia de configurações também está implementada e validada no jogo: `OptionsControls` constrói controles compartilhados, `NativeOptions` registra a superfície do jogo e `ConfigWindow` oferece a janela individual arrastável. Ambas relêem o `ConfigStore` após `CONFIG_CHANGED`, mantendo sincronização bidirecional com o painel principal.
+
 ### Fase 3 — Rastreamento e histórico
 
 - atividade de combate;

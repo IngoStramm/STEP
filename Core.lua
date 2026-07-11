@@ -80,6 +80,12 @@ function STEP:Initialize()
     if self.MainPanel then
         self.MainPanel:Initialize()
     end
+    if self.OptionsControls then
+        self.OptionsControls:Initialize()
+    end
+    if self.NativeOptions then
+        self.NativeOptions:Initialize()
+    end
     self:Fire("STEP_READY", {
         version = self.version,
         phase = self.Constants.DEVELOPMENT_PHASE,

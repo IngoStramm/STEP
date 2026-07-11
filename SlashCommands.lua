@@ -5,6 +5,7 @@ local function PrintHelp()
     STEP:Print(STEP:GetText("HELP_PANEL"))
     STEP:Print(STEP:GetText("HELP_PANEL_STATE"))
     STEP:Print(STEP:GetText("HELP_PANEL_LOCK"))
+    STEP:Print(STEP:GetText("HELP_CONFIG"))
     STEP:Print(STEP:GetText("HELP_STATUS"))
     STEP:Print(STEP:GetText("HELP_SCAN"))
     STEP:Print(STEP:GetText("HELP_DEBUG"))
@@ -119,6 +120,10 @@ local function HandleSlashCommand(message)
     elseif command == "reset" then
         STEP.MainPanel:ResetPosition()
         STEP:Print(STEP:GetText("PANEL_POSITION_RESET"))
+    elseif command == "config" then
+        STEP.ConfigWindow:Open()
+    elseif command == "options" then
+        STEP.NativeOptions:Open()
     else
         STEP:Print(STEP:GetText("INVALID_COMMAND"))
     end
