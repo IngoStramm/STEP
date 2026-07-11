@@ -373,6 +373,16 @@ Um salto de mais de um ponto será um único evento com `gainedPoints > 1`. A in
 
 `PLAYER_LEVEL_UP`, `PLAYER_ENTERING_WORLD` e eventos de profissão podem solicitar uma varredura, mas todos usam o mesmo agrupador.
 
+Validação no cliente `20506` em 2026-07-11:
+
+- o ganho de Machado de Duas Mãos emitiu `SKILL_LINES_CHANGED` no instante monotônico `147440,819`;
+- a varredura agrupada ocorreu em `147440,919`, confirmando o atraso de `0,10` segundo;
+- a comparação produziu `combat.two_handed_axes 112 -> 113/115 (+1)`;
+- um ganho separado de Defesa produziu `combat.defense 111 -> 112/115 (+1)`;
+- ambos os novos valores coincidiram com a janela de perícias do jogo.
+
+Com isso, o debounce de `0,10` segundo e a comparação incremental de um ponto ficam validados para a V1. Ganhos múltiplos em uma única varredura continuam pendentes como caso de borda.
+
 ## 9. Ciclo de inicialização
 
 ```text

@@ -87,7 +87,7 @@ Arquivos originais em `World of Warcraft/_anniversary_/Screenshots/`.
 | Produção e fila de produção | Pendente. |
 | Mineração, Herborismo e Esfolamento | Pendente. |
 | Pesca | Pendente. |
-| Ganho real de perícia | Pendente. |
+| Ganho real de perícia | Validado para Defesa e Machado de Duas Mãos na rodada 3. |
 | Mudança apenas do máximo | Pendente. |
 | Abandono e reaprendizado | Pendente. |
 
@@ -173,3 +173,76 @@ Arquivos originais em `World of Warcraft/_anniversary_/Screenshots/`.
 | Ataque da mão secundária com `isOffHand = true` | Pendente. |
 | Outros resultados recebidos: dodge, block e miss | Pendente. |
 | Ataques à distância e Varinhas | Pendente. |
+
+## Rodada 3 — Ganhos reais de Defesa e arma
+
+| Campo | Valor |
+| --- | --- |
+| Data | 2026-07-11 |
+| Build | `0.1.0-alpha` |
+| Ganhos observados | Defesa e Machado de Duas Mãos |
+| Resultado geral | Aprovado |
+
+### Ganho de Defesa
+
+O cliente mostrou e STEP detectou:
+
+```text
+Your skill in Defense has increased to 112.
+[STEP] skill: gain combat.defense 111->112/115 (+1)
+```
+
+O valor `112/115` foi confirmado na janela de perícias.
+
+### Ganho de Machado de Duas Mãos
+
+O cliente mostrou e STEP detectou:
+
+```text
+Your skill in Two-Handed Axes has increased to 113.
+[STEP] skill: gain combat.two_handed_axes 112->113/115 (+1)
+```
+
+O valor `113/115` foi confirmado na janela de perícias.
+
+### Sequência de atualização
+
+O buffer registrou:
+
+```text
+[147440.819] system: SKILL_LINES_CHANGED
+[147440.919] scan: reason=SKILL_LINES_CHANGED recognized=12 unknown=8 baseline=false
+```
+
+Conclusões:
+
+- o ganho real dispara `SKILL_LINES_CHANGED`;
+- o debounce executou a varredura exatamente `0,10` segundo depois;
+- `baseline=false` permitiu comparar o retrato anterior com o atual;
+- um único ponto resultou em `gainedPoints = 1`;
+- o scanner não confundiu as oito linhas excluídas com alterações elegíveis.
+
+### Resultado adicional de Defesa
+
+Também foi observado `SWING_MISSED` recebido com `missType = "IMMUNE"`. Isso confirma mais um resultado físico possível no conjunto de tentativas recebidas. A política definitiva deve tratá-lo como tentativa para a janela de atividade, sem afirmar que o evento isolado foi a causa direta do ganho de Defesa.
+
+### Evidências
+
+- `WoWScrnShot_071126_124502.jpg`: mensagens imediatas dos dois ganhos.
+- `WoWScrnShot_071126_124525.jpg`: evento, debounce e comparação do Machado de Duas Mãos.
+- `WoWScrnShot_071126_124534.jpg`: valores finais na janela de perícias e fim do combate.
+
+Arquivos originais em `World of Warcraft/_anniversary_/Screenshots/`.
+
+### Atualização da matriz
+
+| Cenário | Estado após a rodada 3 |
+| --- | --- |
+| Ganho real de perícia de arma | Validado. |
+| Ganho real de Defesa | Validado. |
+| `SKILL_LINES_CHANGED` após ganho | Validado. |
+| Debounce de `0,10` segundo | Validado. |
+| Comparação incremental de um ponto | Validada. |
+| Correspondência com a janela de perícias | Validada. |
+| `SWING_MISSED` recebido com `IMMUNE` | Validado como tentativa observável. |
+| Ganho múltiplo na mesma varredura | Pendente. |
