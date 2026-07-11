@@ -2,6 +2,9 @@ local _, STEP = ...
 
 local function PrintHelp()
     STEP:Print(STEP:GetText("HELP_HEADER"))
+    STEP:Print(STEP:GetText("HELP_PANEL"))
+    STEP:Print(STEP:GetText("HELP_PANEL_STATE"))
+    STEP:Print(STEP:GetText("HELP_PANEL_LOCK"))
     STEP:Print(STEP:GetText("HELP_STATUS"))
     STEP:Print(STEP:GetText("HELP_SCAN"))
     STEP:Print(STEP:GetText("HELP_DEBUG"))
@@ -89,7 +92,9 @@ end
 local function HandleSlashCommand(message)
     local command, rest = SplitCommand(message)
 
-    if command == "" or command == "help" then
+    if command == "" then
+        STEP.MainPanel:ToggleShown()
+    elseif command == "help" then
         PrintHelp()
     elseif command == "status" then
         STEP.DebugProbe:DumpStatus()
@@ -98,6 +103,22 @@ local function HandleSlashCommand(message)
         STEP:Print(STEP:GetText("SCAN_REQUESTED"))
     elseif command == "debug" then
         HandleDebug(rest)
+    elseif command == "expand" then
+        STEP.MainPanel:SetExpanded(true)
+    elseif command == "compact" then
+        STEP.MainPanel:SetExpanded(false)
+    elseif command == "toggle" then
+        STEP.MainPanel:ToggleExpanded()
+    elseif command == "show" then
+        STEP.MainPanel:SetShown(true)
+    elseif command == "hide" then
+        STEP.MainPanel:SetShown(false)
+    elseif command == "lock" then
+        local locked = STEP.MainPanel:ToggleLocked()
+        STEP:Print(STEP:GetText(locked and "PANEL_LOCKED" or "PANEL_UNLOCKED"))
+    elseif command == "reset" then
+        STEP.MainPanel:ResetPosition()
+        STEP:Print(STEP:GetText("PANEL_POSITION_RESET"))
     else
         STEP:Print(STEP:GetText("INVALID_COMMAND"))
     end

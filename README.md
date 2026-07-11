@@ -2,7 +2,7 @@
 
 STEP is a World of Warcraft Anniversary / Burning Crusade Classic addon for tracking learned weapon and profession skill progress in a compact, configurable panel.
 
-The Phase 1 data core is implemented and the first safe slice of **Phase 2** is in progress. The pure `ViewModel` now derives compact/expanded rows, categories, sorting, colors, summaries, equipment and tooltip metadata, transient notification rows, and panel-state hints. The visual panel and configuration surfaces are not implemented yet.
+The Phase 1 data core is implemented and validated in game. **Phase 2** now includes the pure `ViewModel` and the first visual main-panel slice: compact/expanded modes, localized rows, progress colors, equipped-weapon highlighting, tooltips, dragging, locking, and persisted position. Configuration surfaces remain in progress.
 
 ## Planned features
 
@@ -16,7 +16,10 @@ The Phase 1 data core is implemented and the first safe slice of **Phase 2** is 
 
 ## Development commands
 
-- `/step help` — List Phase 1 commands.
+- `/step` — Show or hide the progress panel.
+- `/step expand|compact|toggle` — Change compact/expanded state.
+- `/step show|hide|lock|reset` — Control visibility, movement lock, and position.
+- `/step help` — List commands.
 - `/step status` — Show diagnostic state.
 - `/step scan` — Scan learned skills.
 - `/step debug on|off` — Enable or disable event capture.
@@ -60,6 +63,8 @@ Do not use GitHub's green **Code > Download ZIP** button for installation. That 
 - `docs/PHASE0_TEST_PLAN.md` — In-game API validation procedure.
 - `docs/PHASE0_VALIDATION_LOG.md` — Evidence and results from in-game validation rounds.
 - `docs/PHASE1_TEST_PLAN.md` — In-game validation procedure for the data core and schema migration.
+- `docs/PHASE1_VALIDATION_LOG.md` — Evidence and results from the Phase 1 in-game validation.
+- `docs/PHASE2_VALIDATION_LOG.md` — Incremental visual and functional validation of the main panel.
 
 ## Automated tests
 

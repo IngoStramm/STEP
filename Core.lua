@@ -77,13 +77,16 @@ function STEP:Initialize()
 
     self.blocked = false
     self.ready = true
+    if self.MainPanel then
+        self.MainPanel:Initialize()
+    end
     self:Fire("STEP_READY", {
         version = self.version,
         phase = self.Constants.DEVELOPMENT_PHASE,
         schemaVersion = self.Constants.SCHEMA_VERSION,
         snapshot = self.SkillScanner:GetSnapshot(),
     })
-    self:Print(self:GetText("PHASE1_READY", self.version))
+    self:Print(self:GetText("PHASE2_READY", self.version))
     return true
 end
 
@@ -128,7 +131,15 @@ function STEP:OnEvent(event, ...)
         return
     end
 
-    if event == "PLAYER_ENTERING_WORLD" then
+    if event == "PLAYER_REGEN_DISABLED" then
+        if self.MainPanel then
+            self.MainPanel:SetCombatState(true)
+        end
+    elseif event == "PLAYER_REGEN_ENABLED" then
+        if self.MainPanel then
+            self.MainPanel:SetCombatState(false)
+        end
+    elseif event == "PLAYER_ENTERING_WORLD" then
         self.EquipmentResolver:Update(event)
         self.SkillScanner:Schedule(event)
     elseif event == "PLAYER_EQUIPMENT_CHANGED" then

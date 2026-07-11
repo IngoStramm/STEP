@@ -1330,7 +1330,7 @@ Se o teste indicar mudança de fluxo, padrão, dado armazenado ou critério de a
 - barramento interno;
 - testes puros principais.
 
-Implementada em `0.2.0-alpha`. A conclusão definitiva da fase depende da validação instrumentada de `docs/PHASE1_TEST_PLAN.md` no cliente `20506`.
+Implementada e validada no cliente `20506` em `0.2.0-alpha`. As evidências estão registradas em `docs/PHASE1_VALIDATION_LOG.md`.
 
 ### Fase 2 — Painel e opções
 
@@ -1340,7 +1340,9 @@ Implementada em `0.2.0-alpha`. A conclusão definitiva da fase depende da valida
 - presets, tooltips e comportamento em combate;
 - primeira rodada de leitura visual.
 
-O `ViewModel` puro foi implementado como primeira fatia da fase, com testes de visibilidade, resumo, categorias, ordenação, cores, equipamento, transientes e estados do painel. `MainPanel` e opções permanecem pendentes porque exigem validação visual no cliente antes de congelar dimensões, âncoras e densidade.
+O `ViewModel` puro foi implementado com testes de visibilidade, resumo, categorias, ordenação, cores, equipamento, transientes e estados do painel. A primeira fatia de `MainPanel` também foi implementada com modos compacto/expandido, linhas reutilizáveis, tooltips, destaque de equipamento, posição persistida e comandos. Dimensões, densidade e contraste ainda dependem de validação visual; as superfícies de opções permanecem pendentes.
+
+A primeira rodada visual do `MainPanel` foi aprovada no cliente `20506`, incluindo compacto, expandido, cores, equipamento, tooltip, arraste, persistência, bloqueio e visibilidade. As evidências estão em `docs/PHASE2_VALIDATION_LOG.md`.
 
 ### Fase 3 — Rastreamento e histórico
 

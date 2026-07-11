@@ -2,7 +2,7 @@ local _, STEP = ...
 
 STEP.Constants = {
     SCHEMA_VERSION = 2,
-    DEVELOPMENT_PHASE = "phase1",
+    DEVELOPMENT_PHASE = "phase2",
     SKILL_SCAN_DELAY = 0.10,
     DEBUG_EVENT_LIMIT = 120,
     DEBUG_DUMP_LIMIT = 20,

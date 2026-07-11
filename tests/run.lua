@@ -327,6 +327,10 @@ local function ResetRuntime(database)
     STEP.SkillScanner.mutatingHeaders = false
 
     STEP.SkillRegistry:BuildLookup()
+    if STEP.MainPanel then
+        STEP.MainPanel.inCombat = false
+        STEP.MainPanel.lastModel = nil
+    end
 end
 
 local function InitializeStores(database)
@@ -375,6 +379,7 @@ Test("loads every Lua file from the toc", function()
     AssertTrue(#loadedRuntimeFiles > 0)
     AssertTrue(type(STEP.Core) == "nil")
     AssertTrue(type(STEP.Database) == "table")
+    AssertTrue(type(STEP.MainPanel) == "table")
     AssertTrue(type(STEP.eventFrame) == "table")
     AssertTrue(type(SlashCmdList.STEP) == "function")
 end)
@@ -1500,6 +1505,36 @@ Test("Core remains blocked when the baseline cannot be read", function()
     AssertFalse(STEP.ready)
     AssertTrue(STEP.blocked)
     AssertEqual(0, readyEvents)
+end)
+
+Test("MainPanel commands persist visibility, mode, lock and reset position", function()
+    InitializeStores(nil)
+    AssertTrue(STEP.ConfigStore:Get("panel.shown"))
+    AssertFalse(STEP.ConfigStore:Get("panel.expanded"))
+    AssertFalse(STEP.ConfigStore:Get("panel.locked"))
+
+    SlashCmdList.STEP("")
+    AssertFalse(STEP.ConfigStore:Get("panel.shown"))
+    SlashCmdList.STEP("show")
+    AssertTrue(STEP.ConfigStore:Get("panel.shown"))
+    SlashCmdList.STEP("expand")
+    AssertTrue(STEP.ConfigStore:Get("panel.expanded"))
+    SlashCmdList.STEP("compact")
+    AssertFalse(STEP.ConfigStore:Get("panel.expanded"))
+    SlashCmdList.STEP("toggle")
+    AssertTrue(STEP.ConfigStore:Get("panel.expanded"))
+    SlashCmdList.STEP("lock")
+    AssertTrue(STEP.ConfigStore:Get("panel.locked"))
+
+    AssertTrue(STEP.ConfigStore:Set("panel.point", "TOPLEFT"))
+    AssertTrue(STEP.ConfigStore:Set("panel.relativePoint", "TOPLEFT"))
+    AssertTrue(STEP.ConfigStore:Set("panel.x", 80))
+    AssertTrue(STEP.ConfigStore:Set("panel.y", -40))
+    SlashCmdList.STEP("reset")
+    AssertEqual("CENTER", STEP.ConfigStore:Get("panel.point"))
+    AssertEqual("CENTER", STEP.ConfigStore:Get("panel.relativePoint"))
+    AssertEqual(0, STEP.ConfigStore:Get("panel.x"))
+    AssertEqual(0, STEP.ConfigStore:Get("panel.y"))
 end)
 
 for index = 1, #tests do

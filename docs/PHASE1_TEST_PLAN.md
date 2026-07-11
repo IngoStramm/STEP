@@ -53,11 +53,13 @@ Confirme:
 - equipamento permanece associado às mesmas chaves canônicas;
 - slots vazios e candidatos a Desarmado continuam corretos.
 
-Antes de um segundo `/reload`, recolha ao menos um cabeçalho na janela de perícias do personagem. Depois do carregamento, confirme que:
+Com a janela de perícias aberta, recolha ao menos um cabeçalho e execute `/step debug snapshot` sem recarregar a interface. Confirme que:
 
 - as perícias daquele grupo continuam presentes em `/step debug snapshot`;
-- o cabeçalho continua recolhido na interface padrão do jogo;
+- o cabeçalho continua recolhido na interface padrão do jogo após a varredura;
 - nenhuma perícia é anunciada como abandonada durante a leitura transitória.
+
+O `/reload` não deve ser usado para validar a restauração do cabeçalho: o próprio cliente fecha a janela e recria seus grupos expandidos.
 
 ## 4. Padrões incrementais de configuração
 
