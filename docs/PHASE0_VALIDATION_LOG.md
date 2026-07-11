@@ -547,8 +547,8 @@ Arquivos originais em `World of Warcraft/_anniversary_/Screenshots/`.
 | Build | `0.1.0-alpha` |
 | Perícia | Fishing 325/375 |
 | Spell ID principal observado | `33095` |
-| Spell ID auxiliar observado anteriormente | `45731`, não reproduzido no teste isolado |
-| Resultado geral | Parcialmente aprovado; ciclo bem-sucedido validado, identificação auxiliar e terminais ainda pendentes |
+| Spell ID de acessório observado | `45731` — `Sharpened Fish Hook` |
+| Resultado geral | Parcialmente aprovado; ciclo bem-sucedido e acessório identificados, terminais ainda pendentes |
 
 ### Identificador e ciclo principal
 
@@ -578,7 +578,7 @@ Portanto, `SUCCEEDED` ocorre no início do canal e não confirma captura nem enc
 
 Isso invalida o uso de `7620` como identificador universal da ação: o tracker de Pesca precisa considerar os IDs associados aos graus da profissão ou outra identificação validada pelo nome resolvido no cliente.
 
-### Falha e evento auxiliar
+### Falha e acessório de Pesca
 
 Uma tentativa inicial com `spellID = 33095` terminou em `UNIT_SPELLCAST_FAILED`. As capturas também mostraram, antes de uma tentativa, um ciclo separado com `spellID = 45731`:
 
@@ -589,7 +589,9 @@ UNIT_SPELLCAST_SUCCEEDED
 UNIT_SPELLCAST_STOP
 ```
 
-A função desse segundo ID não pode ser determinada apenas pelos argumentos numéricos. O modo de diagnóstico foi ajustado para acrescentar o nome da magia resolvido pelo próprio cliente aos próximos eventos. No teste isolado seguinte, `45731` não apareceu; por isso ele não será associado à Pesca sem nova evidência.
+O usuário confirmou que `45731` pertence ao item `Sharpened Fish Hook`, aplicado à vara para aumentar Pesca em `100` por `10` minutos. O ciclo representa a aplicação do acessório, não uma tentativa de Pesca. Ele não apareceu no teste isolado seguinte porque o item não foi reaplicado.
+
+Consequência: o tracker deve aceitar como tentativa apenas o ciclo canalizado cuja magia é resolvida como a linha de Pesca. `45731` e outras aplicações de melhorias na vara ficam fora do cronômetro, ainda que sejam usadas imediatamente antes de pescar.
 
 ### Evidências
 
@@ -611,6 +613,6 @@ Arquivos originais em `World of Warcraft/_anniversary_/Screenshots/`.
 | Loot posterior a `CHANNEL_STOP` | Validado. |
 | `SUCCEEDED` como encerramento | Rejeitado; ocorre no início do canal. |
 | Tentativa com `UNIT_SPELLCAST_FAILED` | Observada. |
-| Nome e função de `45731` | Pendente; não reproduzido no teste isolado. |
+| Nome e função de `45731` | Validado como aplicação de `Sharpened Fish Hook`; excluído das tentativas. |
 | Cancelamento deliberado | Pendente de distinção. |
 | Timeout sem interação | Pendente. |

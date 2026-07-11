@@ -745,7 +745,7 @@ O período canalizado e a espera pelo loot fazem parte do tempo ativo. Serão co
 
 O ID da ação é dependente do grau aprendido: `33095` foi observado no personagem com Pesca `325/375` e resolvido pelo cliente como `Fishing`, enquanto `7620` é apenas uma referência de grau inicial e não serve como ID universal. O tracker deverá reconhecer a ação principalmente pelo nome localizado resolvido pelo cliente e associado à linha `secondary.fishing`; IDs validados podem ser mantidos como evidência diagnóstica e otimização, nunca como lista universal presumida.
 
-Um segundo ciclo com `spellID = 45731` apareceu antes de uma tentativa anterior, mas não foi reproduzido no teste isolado com nomes habilitados. Ele permanece fora das regras de Pesca até que seu nome e contexto sejam observados diretamente.
+O ciclo separado com `spellID = 45731` foi identificado como a aplicação do item `Sharpened Fish Hook`, que concede `+100` de Pesca por `10` minutos quando aplicado à vara. Trata-se de uma melhoria de equipamento, não de uma tentativa de Pesca, e deve ser explicitamente ignorado pelo cronômetro. A proximidade temporal com um lançamento nunca é suficiente para classificar uma magia auxiliar como atividade da profissão.
 
 ### 13.7 Ganho desacoplado da tentativa
 
