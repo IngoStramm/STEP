@@ -1,0 +1,30 @@
+local _, STEP = ...
+
+STEP.Locales = STEP.Locales or {}
+STEP.Locales.ptBR = {
+    PHASE0_READY = "Compilacao de diagnostico da Fase 0 %s carregada. Use /step help para ver os comandos de validacao.",
+    HELP_HEADER = "Comandos da Fase 0 do STEP:",
+    HELP_STATUS = "/step status - Mostra o estado do diagnostico.",
+    HELP_SCAN = "/step scan - Examina agora as pericias aprendidas.",
+    HELP_DEBUG = "/step debug on|off - Ativa ou desativa a captura de eventos.",
+    HELP_SNAPSHOT = "/step debug snapshot - Mostra o retrato atual das pericias.",
+    HELP_EQUIPMENT = "/step debug equipment - Mostra os slots de armas resolvidos.",
+    HELP_EVENTS = "/step debug events - Mostra os ultimos eventos capturados.",
+    HELP_LIVE = "/step debug combat|casts on|off - Alterna a exibicao de eventos ao vivo.",
+    HELP_CLEAR = "/step debug clear - Limpa os eventos capturados.",
+    DEBUG_ENABLED = "Captura de diagnostico ativada.",
+    DEBUG_DISABLED = "Captura de diagnostico desativada.",
+    DEBUG_REQUIRED = "Ative primeiro o diagnostico com /step debug on.",
+    INVALID_COMMAND = "Comando desconhecido. Use /step help.",
+    SCAN_REQUESTED = "Varredura de pericias solicitada.",
+    NO_EVENTS = "Nenhum evento de diagnostico foi capturado.",
+    EVENTS_HEADER = "Ultimos %d eventos de diagnostico:",
+    SNAPSHOT_HEADER = "Pericias reconhecidas: %d; linhas numericas desconhecidas: %d.",
+    EQUIPMENT_HEADER = "Equipamento resolvido:",
+    EMPTY_SLOT = "vazio",
+    LIVE_COMBAT_ON = "Exibicao ao vivo do combate ativada.",
+    LIVE_COMBAT_OFF = "Exibicao ao vivo do combate desativada.",
+    LIVE_CASTS_ON = "Exibicao ao vivo de lancamentos ativada.",
+    LIVE_CASTS_OFF = "Exibicao ao vivo de lancamentos desativada.",
+    EVENTS_CLEARED = "Eventos de diagnostico apagados.",
+}

@@ -1,0 +1,38 @@
+name: Release
+
+on:
+  push:
+    tags:
+      - "v*"
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  package:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Build addon package
+        run: |
+          mkdir -p package/STEP
+          cp STEP.toc Core.lua Constants.lua Util.lua SlashCommands.lua package/STEP/
+          cp -r Locale Data Services package/STEP/
+          cd package
+          zip -r ../STEP.zip STEP
+
+      - name: Upload package artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: STEP
+          path: STEP.zip
+
+      - name: Publish GitHub release
+        if: startsWith(github.ref, 'refs/tags/')
+        uses: softprops/action-gh-release@v2
+        with:
+          files: STEP.zip

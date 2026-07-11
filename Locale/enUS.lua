@@ -1,0 +1,30 @@
+local _, STEP = ...
+
+STEP.Locales = STEP.Locales or {}
+STEP.Locales.enUS = {
+    PHASE0_READY = "Phase 0 diagnostic build %s loaded. Use /step help for validation commands.",
+    HELP_HEADER = "STEP Phase 0 commands:",
+    HELP_STATUS = "/step status - Show diagnostic status.",
+    HELP_SCAN = "/step scan - Scan learned skills now.",
+    HELP_DEBUG = "/step debug on|off - Enable or disable event capture.",
+    HELP_SNAPSHOT = "/step debug snapshot - Show the current skill snapshot.",
+    HELP_EQUIPMENT = "/step debug equipment - Show resolved weapon slots.",
+    HELP_EVENTS = "/step debug events - Show the latest captured events.",
+    HELP_LIVE = "/step debug combat|casts on|off - Toggle live event output.",
+    HELP_CLEAR = "/step debug clear - Clear captured events.",
+    DEBUG_ENABLED = "Diagnostic capture enabled.",
+    DEBUG_DISABLED = "Diagnostic capture disabled.",
+    DEBUG_REQUIRED = "Enable diagnostics first with /step debug on.",
+    INVALID_COMMAND = "Unknown command. Use /step help.",
+    SCAN_REQUESTED = "Skill scan requested.",
+    NO_EVENTS = "No diagnostic events captured.",
+    EVENTS_HEADER = "Latest %d diagnostic events:",
+    SNAPSHOT_HEADER = "Recognized skills: %d; unknown numeric lines: %d.",
+    EQUIPMENT_HEADER = "Resolved equipment:",
+    EMPTY_SLOT = "empty",
+    LIVE_COMBAT_ON = "Live combat output enabled.",
+    LIVE_COMBAT_OFF = "Live combat output disabled.",
+    LIVE_CASTS_ON = "Live spellcast output enabled.",
+    LIVE_CASTS_OFF = "Live spellcast output disabled.",
+    EVENTS_CLEARED = "Diagnostic events cleared.",
+}
