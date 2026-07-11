@@ -55,6 +55,7 @@ Do not use GitHub's green **Code > Download ZIP** button for installation. That 
 - `docs/PRD.md` — Approved product requirements.
 - `docs/TECHNICAL_ARCHITECTURE.md` — Approved technical architecture.
 - `docs/PHASE0_TEST_PLAN.md` — In-game API validation procedure.
+- `docs/PHASE0_VALIDATION_LOG.md` — Evidence and results from in-game validation rounds.
 
 ## Package validation
 

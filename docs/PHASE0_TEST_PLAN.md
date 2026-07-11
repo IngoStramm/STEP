@@ -4,6 +4,8 @@
 
 Validar no cliente `20506` os nomes, payloads e sequências de eventos que sustentarão os rastreadores definitivos. A Fase 0 não mede ainda o tempo ativo nem cria o painel final.
 
+Os resultados confirmados devem ser consolidados em `docs/PHASE0_VALIDATION_LOG.md`.
+
 ## Preparação
 
 1. Entre no jogo com STEP habilitado.
