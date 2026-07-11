@@ -85,7 +85,7 @@ Arquivos originais em `World of Warcraft/_anniversary_/Screenshots/`.
 | Armas à distância e Varinhas | Pendente. |
 | Eventos de ataque e Defesa | Parcialmente validados na rodada 2; off-hand, ataques à distância e outros resultados permanecem pendentes. |
 | Produção e fila de produção | Pendente. |
-| Mineração, Herborismo e Esfolamento | Pendente. |
+| Mineração, Herborismo e Esfolamento | Mineração validada na rodada 4; Herborismo e Esfolamento permanecem pendentes. |
 | Pesca | Pendente. |
 | Ganho real de perícia | Validado para Defesa e Machado de Duas Mãos na rodada 3. |
 | Mudança apenas do máximo | Pendente. |
@@ -246,3 +246,77 @@ Arquivos originais em `World of Warcraft/_anniversary_/Screenshots/`.
 | Correspondência com a janela de perícias | Validada. |
 | `SWING_MISSED` recebido com `IMMUNE` | Validado como tentativa observável. |
 | Ganho múltiplo na mesma varredura | Pendente. |
+
+## Rodada 4 — Mineração concluída e interrompida
+
+| Campo | Valor |
+| --- | --- |
+| Data | 2026-07-11 |
+| Build | `0.1.0-alpha` |
+| Recurso | Copper Vein |
+| Spell ID observado | `2576` |
+| Resultado geral | Aprovado para início, sucesso e interrupção de Mineração |
+
+### Identificador da ação
+
+`UNIT_SPELLCAST_SENT` apresentou:
+
+```text
+unit=player
+target=Copper Vein
+castGUID=Cast-3-6261-1-36-2576-...
+spellID=2576
+```
+
+Conclusão: a ação de minerar usa `2576` no cliente `20506`. O valor `2575` encontrado em referências locais não corresponde ao lançamento observado e não deve ser usado como identificador principal da tentativa.
+
+### Tentativa bem-sucedida
+
+Foram capturadas várias sequências bem-sucedidas com GUIDs distintos:
+
+```text
+UNIT_SPELLCAST_SENT
+UNIT_SPELLCAST_START
+UNIT_SPELLCAST_SUCCEEDED
+UNIT_SPELLCAST_STOP
+```
+
+O loot de `Copper Ore` e `Rough Stone` apareceu depois das sequências concluídas.
+
+### Tentativa interrompida
+
+Foram capturadas sequências interrompidas:
+
+```text
+UNIT_SPELLCAST_SENT
+UNIT_SPELLCAST_START
+UNIT_SPELLCAST_STOP
+UNIT_SPELLCAST_INTERRUPTED
+UNIT_SPELLCAST_INTERRUPTED
+UNIT_SPELLCAST_INTERRUPTED
+```
+
+Os três eventos `UNIT_SPELLCAST_INTERRUPTED` repetiram o mesmo `castGUID`. Isso exige fechamento idempotente: a tentativa e sua duração só podem ser registradas uma vez.
+
+`UNIT_SPELLCAST_STOP` não distingue sucesso de interrupção isoladamente. O tracker deve usar o resultado já observado ou aceitar uma atualização terminal posterior para o mesmo GUID sem criar outro intervalo.
+
+### Evidências
+
+- `WoWScrnShot_071126_133526.jpg`: primeira interrupção e primeira conclusão.
+- `WoWScrnShot_071126_133535.jpg`: nova interrupção e nova conclusão.
+- `WoWScrnShot_071126_133541.jpg`: repetição das sequências e loot.
+
+Arquivos originais em `World of Warcraft/_anniversary_/Screenshots/`.
+
+### Atualização da matriz
+
+| Cenário | Estado após a rodada 4 |
+| --- | --- |
+| `spellID` da ação de Mineração | Validado como `2576`. |
+| Alvo da coleta em `UNIT_SPELLCAST_SENT` | Validado. |
+| Início exato da tentativa | Validado por `UNIT_SPELLCAST_START`. |
+| Conclusão bem-sucedida | Validada. |
+| Interrupção | Validada. |
+| Novo `castGUID` por tentativa | Validado. |
+| Eventos terminais duplicados | Confirmados; deduplicação obrigatória. |
+| Ganho de Mineração | Não ocorreu nesta rodada; pendente. |

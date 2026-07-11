@@ -625,15 +625,49 @@ Produções em fila são somadas tentativa a tentativa. O tracker não assume a 
 
 O registro manterá uma tabela validada de `spellID -> skillKey` para Mineração, Herborismo e Esfolamento.
 
-Referências iniciais observadas no cliente instalado incluem:
+Identificadores de ação:
 
-- Mineração: `2575`;
-- Herborismo: `2366`;
-- Pesca: `7620`.
+- Mineração: `2576`, validado no cliente `20506`;
+- Herborismo: `2366`, ainda pendente de validação;
+- Pesca: `7620`, ainda pendente de validação.
 
 Os IDs e ranks alternativos, especialmente Esfolamento, devem ser capturados e confirmados no modo de diagnóstico antes da implementação ser considerada completa.
 
-### 13.4 Pesca
+`2575` identifica a profissão ou habilidade base de Mineração em referências locais, mas não foi o `spellID` emitido pela ação de minerar no cliente testado. STEP deve usar `2576` para reconhecer a tentativa observada.
+
+### 13.4 Sequências validadas de Mineração
+
+Uma tentativa bem-sucedida em Veio de Cobre apresentou:
+
+```text
+UNIT_SPELLCAST_SENT
+UNIT_SPELLCAST_START
+UNIT_SPELLCAST_SUCCEEDED
+UNIT_SPELLCAST_STOP
+```
+
+Uma tentativa interrompida apresentou:
+
+```text
+UNIT_SPELLCAST_SENT
+UNIT_SPELLCAST_START
+UNIT_SPELLCAST_STOP
+UNIT_SPELLCAST_INTERRUPTED
+UNIT_SPELLCAST_INTERRUPTED
+UNIT_SPELLCAST_INTERRUPTED
+```
+
+Todos os eventos da mesma tentativa preservaram o mesmo `castGUID`, e tentativas seguintes receberam novos GUIDs. Consequências para o tracker:
+
+- `UNIT_SPELLCAST_SENT` fornece o alvo localizado, como `Copper Vein`, o `castGUID` e `spellID = 2576`;
+- `UNIT_SPELLCAST_START` inicia o intervalo exato;
+- `UNIT_SPELLCAST_SUCCEEDED` marca sucesso e pode encerrar o intervalo;
+- `UNIT_SPELLCAST_STOP` aparece tanto em sucesso quanto em interrupção;
+- `UNIT_SPELLCAST_INTERRUPTED` pode repetir para o mesmo `castGUID` e deve ser idempotente;
+- o primeiro terminal fecha o tempo; terminais posteriores apenas refinam o resultado, sem acumular ou registrar uma segunda tentativa;
+- um cache curto de GUIDs encerrados impede duplicação.
+
+### 13.5 Pesca
 
 Pesca usa uma pequena máquina de estados própria:
 
@@ -645,7 +679,7 @@ idle -> casting -> waiting -> looting -> idle
 
 O período `waiting` faz parte do tempo ativo. Como os sinais de sucesso e cancelamento podem variar, serão correlacionados lançamento, `UNIT_SPELLCAST_*`, loot e timeout. O timeout deve apenas encerrar a tentativa, nunca inventar sucesso.
 
-### 13.5 Ganho desacoplado da tentativa
+### 13.6 Ganho desacoplado da tentativa
 
 O ganho continua sendo detectado pelo `SkillScanner`, não pelo evento de fabricação ou coleta. O `ProfessionTracker` mede atividade; o scanner confirma a alteração numérica. Isso evita registrar sucesso falso quando uma tentativa não aumenta a perícia.
 
@@ -1136,7 +1170,7 @@ Se o teste indicar mudança de fluxo, padrão, dado armazenado ou critério de a
 | Varinha usar subevento inesperado | Instrumentar `RANGE_*` e `SPELL_*`; aceitar só o caminho comprovado. |
 | Arma de punho ser confundida com Desarmado | Separar subclasse de item e mão vazia no `EquipmentResolver`. |
 | Eventos de produção variarem entre janelas | Encapsular contexto TradeSkill/Craft e testar ambos. |
-| Esfolamento possuir ranks/spellIDs alternativos | Criar tabela validada por captura no cliente. |
+| Coleta possuir ranks/spellIDs alternativos | Mineração validada com `2576`; Herborismo, Esfolamento e possíveis IDs alternativos ainda exigem captura. |
 | Pesca não emitir um único encerramento confiável | Correlacionar cast, loot, cancelamento e timeout. |
 | Desconexão abrupta perder delta recente | Checkpoint somente enquanto ativo. |
 | Histórico crescer indefinidamente | Eventos e segmentos limitados; agregados compactos. |
