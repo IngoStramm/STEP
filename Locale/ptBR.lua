@@ -34,4 +34,10 @@ STEP.Locales.ptBR = {
     SCHEMA_NEWER = "O schema %s do banco e mais novo que o schema %s suportado. STEP foi bloqueado sem alterar os dados.",
     MIGRATION_FAILED = "A migracao do banco falhou; a copia anterior em memoria foi restaurada. Erro: %s",
     BOOTSTRAP_SCAN_FAILED = "A varredura inicial de pericias falhou e STEP nao foi ativado: %s",
+    CATEGORY_COMBAT = "Pericias de combate",
+    CATEGORY_PRIMARY = "Profissoes primarias",
+    CATEGORY_SECONDARY = "Profissoes secundarias",
+    SUMMARY_MAXED = "%d/%d no maximo",
+    SUMMARY_NEEDS_TRAINING_ONE = "%d pericia precisa de treino",
+    SUMMARY_NEEDS_TRAINING_MANY = "%d pericias precisam de treino",
 }

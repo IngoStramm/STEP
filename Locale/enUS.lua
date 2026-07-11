@@ -34,4 +34,10 @@ STEP.Locales.enUS = {
     SCHEMA_NEWER = "SavedVariables schema %s is newer than supported schema %s. STEP was blocked without changing the data.",
     MIGRATION_FAILED = "SavedVariables migration failed; the previous in-memory copy was restored. Error: %s",
     BOOTSTRAP_SCAN_FAILED = "The initial skill scan failed and STEP was not activated: %s",
+    CATEGORY_COMBAT = "Combat Skills",
+    CATEGORY_PRIMARY = "Primary Professions",
+    CATEGORY_SECONDARY = "Secondary Professions",
+    SUMMARY_MAXED = "%d/%d at maximum",
+    SUMMARY_NEEDS_TRAINING_ONE = "%d skill needs training",
+    SUMMARY_NEEDS_TRAINING_MANY = "%d skills need training",
 }

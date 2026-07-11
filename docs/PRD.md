@@ -137,6 +137,8 @@ O painel deve ser discreto, compacto e baseado na linguagem visual do FUR:
 - Posição salva por personagem.
 - Altura ajustada dinamicamente ao conteúdo.
 
+O resumo do cabeçalho deve permanecer estável ao alternar entre compacto e expandido. Ele considera todas as perícias aprendidas configuradas como visíveis em pelo menos o expandido, antes do filtro `Ocultar perícias completas`. Exibições temporárias por arma equipada ou notificação não alteram esse total.
+
 Cada linha deve mostrar:
 
 ```text

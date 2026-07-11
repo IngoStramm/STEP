@@ -2,7 +2,7 @@
 
 STEP is a World of Warcraft Anniversary / Burning Crusade Classic addon for tracking learned weapon and profession skill progress in a compact, configurable panel.
 
-The project is currently in **Phase 1**. Its canonical skill snapshot, schema migration, configuration store, event bus, and equipment resolution core are implemented. The final user interface is not implemented yet.
+The Phase 1 data core is implemented and the first safe slice of **Phase 2** is in progress. The pure `ViewModel` now derives compact/expanded rows, categories, sorting, colors, summaries, equipment and tooltip metadata, transient notification rows, and panel-state hints. The visual panel and configuration surfaces are not implemented yet.
 
 ## Planned features
 

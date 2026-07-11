@@ -272,6 +272,30 @@ Eventos auxiliares `SKILL_CORRECTED`, `SKILL_MAXIMUM_CHANGED` e `SKILL_MODIFIER_
 - calcula textos, cores, tooltips e o resumo do cabeçalho;
 - cria linhas transitórias para notificações discretas quando necessário.
 
+O `ViewModel` é uma projeção pura: não cria frames, não persiste dados e não emite eventos. `Build` recebe estados canônicos ou usa os serviços como fallback e retorna:
+
+- `rows` e `sections` na ordem canônica `combat`, `primary`, `secondary`;
+- metadados `showHeader` e `hasSeparatorBefore`, sem seções vazias;
+- contagens separadas de perícias habilitadas, elegíveis no modo e realmente exibidas;
+- cores e percentual calculados apenas com `current/maximum` base;
+- tooltip pré-calculado com percentual, pontos faltantes e bônus;
+- estado derivado do painel, sem alterar o valor persistido de expansão;
+- diagnósticos derivados para máximos inválidos.
+
+O resumo é estável entre compacto e expandido: considera todas as perícias aprendidas cuja visibilidade não seja `hidden`, antes de `hideMaxed`. Promoções temporárias por arma equipada ou notificação não alteram o denominador.
+
+Campos de tooltip ligados a ganhos e tempos da sessão permanecem ausentes até a Fase 3. Não devem ser preenchidos com zero, pois isso sugeriria uma medição que ainda não ocorreu.
+
+Linhas transitórias usam um mapa efêmero fornecido pelo futuro `NotificationQueue`:
+
+```lua
+transient = {
+  [skillKey] = { kind = "gain", token = 42 },
+}
+```
+
+O `ViewModel` apenas projeta esse conjunto ativo. Ele não controla relógio nem expiração. Uma linha transitória pode vencer temporariamente visibilidade e `hideMaxed`, mas nunca cria uma perícia desconhecida ou não aprendida.
+
 ### 6.12 `NotificationQueue`
 
 - transforma ganhos em itens de apresentação;
@@ -1315,6 +1339,8 @@ Implementada em `0.2.0-alpha`. A conclusão definitiva da fase depende da valida
 - opções nativas e independentes;
 - presets, tooltips e comportamento em combate;
 - primeira rodada de leitura visual.
+
+O `ViewModel` puro foi implementado como primeira fatia da fase, com testes de visibilidade, resumo, categorias, ordenação, cores, equipamento, transientes e estados do painel. `MainPanel` e opções permanecem pendentes porque exigem validação visual no cliente antes de congelar dimensões, âncoras e densidade.
 
 ### Fase 3 — Rastreamento e histórico
 

@@ -353,6 +353,24 @@ local function AddItem(slotID, itemID, classID, subclassID, subtype)
     itemInfo[link] = itemInfo[itemID]
 end
 
+local function SnapshotSkill(current, maximum, temporary, modifier)
+    return {
+        current = current,
+        maximum = maximum,
+        temporary = temporary or 0,
+        modifier = modifier or 0,
+        learned = true,
+    }
+end
+
+local function RowsByKey(viewModel)
+    local rows = {}
+    for index = 1, #viewModel.rows do
+        rows[viewModel.rows[index].skillKey] = viewModel.rows[index]
+    end
+    return rows
+end
+
 Test("loads every Lua file from the toc", function()
     AssertTrue(#loadedRuntimeFiles > 0)
     AssertTrue(type(STEP.Core) == "nil")
@@ -688,6 +706,496 @@ Test("ConfigStore batches use the last value for duplicate targets", function()
     AssertEqual(1, callbacks)
     AssertEqual(1, #payload.changes)
     AssertEqual("combat.swords", payload.changes[1].skillKey)
+end)
+
+Test("ViewModel applies compact and expanded visibility without mandatory skills", function()
+    InitializeStores(nil)
+    local snapshot = {
+        ["combat.axes"] = SnapshotSkill(10, 100),
+        ["combat.swords"] = SnapshotSkill(50, 100),
+        ["combat.defense"] = SnapshotSkill(100, 100),
+        ["primary.mining"] = SnapshotSkill(25, 100),
+    }
+    local configs = {
+        ["combat.axes"] = { visibility = "compact", logEnabled = true, notifyEnabled = true },
+        ["combat.swords"] = { visibility = "expanded", logEnabled = true, notifyEnabled = true },
+        ["combat.defense"] = { visibility = "hidden", logEnabled = false, notifyEnabled = false },
+        ["primary.mining"] = { visibility = "expanded", logEnabled = false, notifyEnabled = false },
+    }
+    local equipment = {
+        mainHand = { skillKey = "combat.swords" },
+    }
+    local originalConfigs = STEP.Util:DeepCopy(configs)
+
+    local compact = STEP.ViewModel:Build({
+        snapshot = snapshot,
+        skillConfigs = configs,
+        equipment = equipment,
+        mode = "compact",
+    })
+    AssertEqual(1, #compact.rows)
+    AssertEqual("combat.axes", compact.rows[1].skillKey)
+
+    local autoEquipped = STEP.ViewModel:Build({
+        snapshot = snapshot,
+        skillConfigs = configs,
+        equipment = equipment,
+        mode = "compact",
+        autoShowEquipped = true,
+    })
+    AssertEqual(2, #autoEquipped.rows)
+    AssertTrue(RowsByKey(autoEquipped)["combat.swords"].isEquipped)
+
+    local expanded = STEP.ViewModel:Build({
+        snapshot = snapshot,
+        skillConfigs = configs,
+        equipment = equipment,
+        mode = "expanded",
+    })
+    AssertEqual(3, #expanded.rows)
+    AssertEqual(2, #expanded.sections)
+    AssertEqual("combat", expanded.sections[1].key)
+    AssertEqual("primary", expanded.sections[2].key)
+    AssertNil(RowsByKey(expanded)["combat.defense"])
+    AssertDeepEqual(originalConfigs, configs)
+end)
+
+Test("ViewModel uses base progress for colors and keeps maximum text white", function()
+    InitializeStores(nil)
+    local model = STEP.ViewModel:Build({
+        snapshot = {
+            ["combat.axes"] = SnapshotSkill(100, 100),
+            ["combat.swords"] = SnapshotSkill(90, 100, 10, 5),
+            ["combat.maces"] = SnapshotSkill(89, 100),
+            ["combat.daggers"] = SnapshotSkill(179, 200),
+            ["combat.defense"] = SnapshotSkill(0, 0),
+            ["secondary.fishing"] = SnapshotSkill(325, 375, 0, 123),
+        },
+        skillConfigs = {
+            ["combat.axes"] = { visibility = "compact" },
+            ["combat.swords"] = { visibility = "compact" },
+            ["combat.maces"] = { visibility = "compact" },
+            ["combat.daggers"] = { visibility = "compact" },
+            ["combat.defense"] = { visibility = "compact" },
+            ["secondary.fishing"] = { visibility = "compact" },
+        },
+        equipment = {},
+        mode = "compact",
+    })
+    local rows = RowsByKey(model)
+    AssertEqual("green", rows["combat.axes"].progressState)
+    AssertEqual("yellow", rows["combat.swords"].progressState)
+    AssertEqual(90, rows["combat.swords"].progressPercent)
+    AssertEqual("red", rows["combat.maces"].progressState)
+    AssertEqual("red", rows["combat.daggers"].progressState)
+    AssertEqual(89, rows["combat.daggers"].progressPercent)
+    AssertEqual("neutral", rows["combat.defense"].progressState)
+    AssertFalse(rows["combat.defense"].progressValid)
+    AssertEqual("invalid_maximum", model.diagnostics[1].code)
+    AssertEqual("red", rows["secondary.fishing"].progressState)
+    AssertEqual("325", rows["secondary.fishing"].currentText)
+    AssertEqual("375", rows["secondary.fishing"].maximumText)
+    AssertEqual(50, rows["secondary.fishing"].missingPoints)
+    AssertEqual(123, rows["secondary.fishing"].bonusTotal)
+    AssertEqual(448, rows["secondary.fishing"].tooltip.effective)
+    AssertEqual("+123", rows["secondary.fishing"].tooltip.bonusText)
+    AssertTrue(rows["combat.axes"].maximumColor == STEP.ViewModel.COLORS.white)
+    AssertTrue(rows["combat.swords"].separatorColor == STEP.ViewModel.COLORS.white)
+end)
+
+Test("ViewModel sorts within categories and never mixes their order", function()
+    InitializeStores(nil)
+    local snapshot = {
+        ["combat.swords"] = SnapshotSkill(50, 100),
+        ["combat.axes"] = SnapshotSkill(10, 100),
+        ["combat.daggers"] = SnapshotSkill(100, 100),
+        ["primary.mining"] = SnapshotSkill(5, 100),
+    }
+    local configs = {}
+    for skillKey in pairs(snapshot) do
+        configs[skillKey] = { visibility = "compact" }
+    end
+
+    local progress = STEP.ViewModel:Build({
+        snapshot = snapshot,
+        skillConfigs = configs,
+        equipment = {},
+        mode = "compact",
+        sortMode = "progress",
+    })
+    AssertEqual("combat.axes", progress.rows[1].skillKey)
+    AssertEqual("combat.swords", progress.rows[2].skillKey)
+    AssertEqual("combat.daggers", progress.rows[3].skillKey)
+    AssertEqual("primary.mining", progress.rows[4].skillKey)
+
+    local alphabetical = STEP.ViewModel:Build({
+        snapshot = snapshot,
+        skillConfigs = configs,
+        equipment = {},
+        mode = "compact",
+        sortMode = "alphabetical",
+    })
+    AssertEqual("combat.axes", alphabetical.rows[1].skillKey)
+    AssertEqual("combat.daggers", alphabetical.rows[2].skillKey)
+    AssertEqual("combat.swords", alphabetical.rows[3].skillKey)
+    AssertEqual("primary.mining", alphabetical.rows[4].skillKey)
+end)
+
+Test("ViewModel builds summary, equipped slots and empty states", function()
+    InitializeStores(nil)
+    local options = {
+        snapshot = {
+            ["combat.axes"] = SnapshotSkill(100, 100),
+            ["combat.swords"] = SnapshotSkill(50, 100),
+        },
+        skillConfigs = {
+            ["combat.axes"] = { visibility = "compact" },
+            ["combat.swords"] = { visibility = "compact" },
+        },
+        equipment = {
+            mainHand = { skillKey = "combat.axes" },
+            offHand = { skillKey = "combat.axes" },
+        },
+        mode = "compact",
+    }
+    local model = STEP.ViewModel:Build(options)
+    local axes = RowsByKey(model)["combat.axes"]
+    AssertEqual(2, model.summary.total)
+    AssertEqual(1, model.summary.maxed)
+    AssertEqual(1, model.summary.needsTraining)
+    AssertEqual("1 skill needs training", model.headerText)
+    AssertTrue(axes.isEquipped)
+    AssertDeepEqual({ "mainHand", "offHand" }, axes.equippedSlots)
+
+    options.hideMaxed = true
+    local withoutMaxed = STEP.ViewModel:Build(options)
+    AssertEqual(1, #withoutMaxed.rows)
+    AssertEqual("combat.swords", withoutMaxed.rows[1].skillKey)
+
+    options.skillConfigs["combat.swords"].visibility = "hidden"
+    local empty = STEP.ViewModel:Build(options)
+    AssertTrue(empty.empty)
+    AssertEqual(0, #empty.sections)
+    AssertEqual("1/1 at maximum", empty.headerText)
+    AssertFalse(empty.shouldShowPanel)
+    AssertEqual("all_maxed_hidden", empty.emptyReason)
+end)
+
+Test("ViewModel first-discovery defaults and localization stay deterministic", function()
+    InitializeStores(nil)
+    local originalGetLocale = GetLocale
+    GetLocale = function() return "ptBR" end
+    STEP.SkillRegistry:BuildLookup()
+
+    local snapshot = {
+        ["combat.axes"] = SnapshotSkill(10, 100),
+        ["combat.swords"] = SnapshotSkill(20, 100),
+        ["combat.defense"] = SnapshotSkill(30, 100),
+        ["primary.mining"] = SnapshotSkill(40, 100),
+    }
+    local equipment = {
+        mainHand = { skillKey = "combat.axes" },
+    }
+    local compact = STEP.ViewModel:Build({
+        snapshot = snapshot,
+        skillConfigs = {},
+        equipment = equipment,
+        mode = "compact",
+    })
+    AssertEqual(1, #compact.rows)
+    AssertEqual("Machados", compact.rows[1].name)
+    AssertEqual("Pericias de combate", compact.sections[1].label)
+    AssertEqual("2 pericias precisam de treino", compact.headerText)
+
+    local expanded = STEP.ViewModel:Build({
+        snapshot = snapshot,
+        skillConfigs = {},
+        equipment = equipment,
+        mode = "expanded",
+    })
+    AssertEqual(2, #expanded.rows)
+    AssertNil(RowsByKey(expanded)["combat.defense"])
+    AssertNil(RowsByKey(expanded)["primary.mining"])
+
+    GetLocale = originalGetLocale
+    STEP.SkillRegistry:BuildLookup()
+end)
+
+Test("ViewModel keeps compact as a subset and excludes unknown or unlearned skills", function()
+    InitializeStores(nil)
+    local snapshot = {
+        ["combat.axes"] = SnapshotSkill(10, 100),
+        ["combat.swords"] = SnapshotSkill(20, 100),
+        ["combat.defense"] = SnapshotSkill(30, 100),
+        ["primary.mining"] = SnapshotSkill(40, 100),
+        ["unknown.skill"] = SnapshotSkill(50, 100),
+    }
+    snapshot["primary.mining"].learned = false
+    local configs = {
+        ["combat.axes"] = { visibility = "compact" },
+        ["combat.swords"] = { visibility = "expanded" },
+        ["combat.defense"] = { visibility = "hidden" },
+        ["primary.mining"] = { visibility = "compact" },
+        ["unknown.skill"] = { visibility = "compact" },
+    }
+    local compact = STEP.ViewModel:Build({
+        snapshot = snapshot,
+        skillConfigs = configs,
+        equipment = {},
+        mode = "compact",
+    })
+    local expanded = STEP.ViewModel:Build({
+        snapshot = snapshot,
+        skillConfigs = configs,
+        equipment = {},
+        mode = "expanded",
+    })
+    local expandedRows = RowsByKey(expanded)
+    for index = 1, #compact.rows do
+        AssertTrue(expandedRows[compact.rows[index].skillKey] ~= nil)
+    end
+    AssertEqual(1, #compact.rows)
+    AssertEqual(2, #expanded.rows)
+    AssertNil(expandedRows["combat.defense"])
+    AssertNil(expandedRows["primary.mining"])
+    AssertNil(expandedRows["unknown.skill"])
+    AssertEqual(1, #expanded.sections)
+end)
+
+Test("ViewModel exposes canonical section and separator metadata", function()
+    InitializeStores(nil)
+    local model = STEP.ViewModel:Build({
+        snapshot = {
+            ["combat.axes"] = SnapshotSkill(10, 100),
+            ["primary.mining"] = SnapshotSkill(20, 100),
+            ["secondary.fishing"] = SnapshotSkill(30, 100),
+        },
+        skillConfigs = {
+            ["combat.axes"] = { visibility = "compact" },
+            ["primary.mining"] = { visibility = "compact" },
+            ["secondary.fishing"] = { visibility = "compact" },
+        },
+        equipment = {},
+        mode = "compact",
+    })
+    AssertTrue(model.showSectionHeaders)
+    AssertEqual(3, #model.sections)
+    AssertEqual("combat", model.sections[1].key)
+    AssertEqual("primary", model.sections[2].key)
+    AssertEqual("secondary", model.sections[3].key)
+    AssertFalse(model.sections[1].hasSeparatorBefore)
+    AssertTrue(model.sections[2].hasSeparatorBefore)
+    AssertTrue(model.sections[3].hasSeparatorBefore)
+    AssertEqual(model.sections[1].rows[1], model.rows[1])
+    AssertEqual(model.sections[2].rows[1], model.rows[2])
+    AssertEqual(model.sections[3].rows[1], model.rows[3])
+end)
+
+Test("ViewModel auto-shows only resolved equipped expanded skills", function()
+    InitializeStores(nil)
+    local snapshot = {
+        ["combat.axes"] = SnapshotSkill(10, 100),
+        ["combat.swords"] = SnapshotSkill(20, 100),
+    }
+    local configs = {
+        ["combat.axes"] = { visibility = "hidden" },
+        ["combat.swords"] = { visibility = "expanded" },
+    }
+
+    local unresolved = STEP.ViewModel:Build({
+        snapshot = snapshot,
+        skillConfigs = configs,
+        equipment = { mainHand = { skillKey = "combat.swords", unresolved = true } },
+        mode = "compact",
+        autoShowEquipped = true,
+    })
+    AssertTrue(unresolved.empty)
+
+    local resolved = STEP.ViewModel:Build({
+        snapshot = snapshot,
+        skillConfigs = configs,
+        equipment = {
+            mainHand = { skillKey = "combat.swords" },
+            offHand = { skillKey = "combat.axes" },
+        },
+        mode = "compact",
+        autoShowEquipped = true,
+    })
+    AssertEqual(1, #resolved.rows)
+    AssertEqual("combat.swords", resolved.rows[1].skillKey)
+    AssertNil(RowsByKey(resolved)["combat.axes"])
+end)
+
+Test("ViewModel summary is stable before mode and maxed filters", function()
+    InitializeStores(nil)
+    local options = {
+        snapshot = {
+            ["combat.axes"] = SnapshotSkill(100, 100),
+            ["combat.swords"] = SnapshotSkill(50, 100),
+            ["primary.mining"] = SnapshotSkill(25, 100),
+        },
+        skillConfigs = {
+            ["combat.axes"] = { visibility = "compact" },
+            ["combat.swords"] = { visibility = "expanded" },
+            ["primary.mining"] = { visibility = "expanded" },
+        },
+        equipment = {},
+        mode = "compact",
+    }
+    local compact = STEP.ViewModel:Build(options)
+    AssertEqual(3, compact.summary.total)
+    AssertEqual(1, compact.summary.maxed)
+    AssertEqual(2, compact.summary.needsTraining)
+    AssertEqual("2 skills need training", compact.headerText)
+
+    options.mode = "expanded"
+    options.hideMaxed = true
+    local expanded = STEP.ViewModel:Build(options)
+    AssertEqual(3, expanded.summary.total)
+    AssertEqual(1, expanded.summary.maxed)
+    AssertEqual(2, #expanded.rows)
+    AssertEqual(3, expanded.counts.enabled)
+    AssertEqual(3, expanded.counts.modeEligible)
+    AssertEqual(2, expanded.counts.displayed)
+
+    options.showHeaderSummary = false
+    local withoutText = STEP.ViewModel:Build(options)
+    AssertNil(withoutText.headerText)
+    AssertEqual(2, withoutText.summary.needsTraining)
+end)
+
+Test("ViewModel transient rows override visibility and hideMaxed without duplication", function()
+    InitializeStores(nil)
+    local options = {
+        snapshot = {
+            ["combat.axes"] = SnapshotSkill(100, 100),
+        },
+        skillConfigs = {
+            ["combat.axes"] = { visibility = "hidden" },
+        },
+        equipment = {},
+        mode = "compact",
+        hideMaxed = true,
+        transient = {
+            ["combat.axes"] = { kind = "max", token = 42 },
+            ["unknown.skill"] = { kind = "gain", token = 99 },
+        },
+    }
+    local transientModel = STEP.ViewModel:Build(options)
+    AssertEqual(1, #transientModel.rows)
+    AssertTrue(transientModel.rows[1].isTransient)
+    AssertEqual("max", transientModel.rows[1].transientKind)
+    AssertEqual(42, transientModel.rows[1].transientToken)
+    AssertEqual("green", transientModel.rows[1].progressState)
+    AssertEqual(0, transientModel.summary.total)
+
+    options.transient = nil
+    local normalModel = STEP.ViewModel:Build(options)
+    AssertTrue(normalModel.empty)
+    AssertEqual("no_selected_skills", normalModel.emptyReason)
+end)
+
+Test("ViewModel resolves panel state without mutating persisted expansion", function()
+    InitializeStores(nil)
+    local base = {
+        snapshot = {
+            ["combat.axes"] = SnapshotSkill(10, 100),
+            ["combat.swords"] = SnapshotSkill(20, 100),
+        },
+        skillConfigs = {
+            ["combat.axes"] = { visibility = "compact" },
+            ["combat.swords"] = { visibility = "expanded" },
+        },
+        equipment = {},
+        expanded = true,
+    }
+    local disabled = STEP.ViewModel:Build({
+        snapshot = base.snapshot,
+        skillConfigs = base.skillConfigs,
+        equipment = base.equipment,
+        expanded = true,
+        panelShown = false,
+    })
+    AssertFalse(disabled.shouldShowPanel)
+    AssertEqual("panel_disabled", disabled.hiddenReason)
+    AssertTrue(disabled.persistedExpanded)
+
+    local combatHidden = STEP.ViewModel:Build({
+        snapshot = base.snapshot,
+        skillConfigs = base.skillConfigs,
+        equipment = base.equipment,
+        expanded = true,
+        inCombat = true,
+        combatBehavior = "hide",
+    })
+    AssertFalse(combatHidden.shouldShowPanel)
+    AssertEqual("combat_hidden", combatHidden.hiddenReason)
+    AssertTrue(combatHidden.expanded)
+
+    local combatCompact = STEP.ViewModel:Build({
+        snapshot = base.snapshot,
+        skillConfigs = base.skillConfigs,
+        equipment = base.equipment,
+        expanded = true,
+        inCombat = true,
+        combatBehavior = "compact",
+    })
+    AssertTrue(combatCompact.persistedExpanded)
+    AssertFalse(combatCompact.expanded)
+    AssertEqual("compact", combatCompact.combatOverride)
+    AssertEqual(1, #combatCompact.rows)
+end)
+
+Test("ViewModel builds deterministically without mutating any input", function()
+    InitializeStores(nil)
+    local input = {
+        snapshot = {
+            ["combat.axes"] = SnapshotSkill(50, 100, 0, 10),
+            ["combat.swords"] = SnapshotSkill(50, 100),
+        },
+        skillConfigs = {
+            ["combat.axes"] = { visibility = "compact", logEnabled = true },
+            ["combat.swords"] = { visibility = "compact", notifyEnabled = true },
+        },
+        equipment = {
+            mainHand = { skillKey = "combat.axes" },
+        },
+        transient = {
+            ["combat.swords"] = { kind = "gain", token = 7 },
+        },
+        mode = "compact",
+    }
+    local original = STEP.Util:DeepCopy(input)
+    local first = STEP.ViewModel:Build(input)
+    local second = STEP.ViewModel:Build(input)
+    AssertDeepEqual(original, input)
+    AssertDeepEqual(first, second)
+    AssertEqual(2, #first.rows)
+end)
+
+Test("ViewModel falls back to English for enGB and unsupported locales", function()
+    InitializeStores(nil)
+    local originalGetLocale = GetLocale
+    local function BuildForLocale(locale)
+        GetLocale = function() return locale end
+        STEP.SkillRegistry:BuildLookup()
+        return STEP.ViewModel:Build({
+            snapshot = { ["combat.axes"] = SnapshotSkill(10, 100) },
+            skillConfigs = { ["combat.axes"] = { visibility = "compact" } },
+            equipment = {},
+            mode = "compact",
+        })
+    end
+
+    local enGB = BuildForLocale("enGB")
+    AssertEqual("Axes", enGB.rows[1].name)
+    AssertEqual("Combat Skills", enGB.sections[1].label)
+    local unsupported = BuildForLocale("deDE")
+    AssertEqual("Axes", unsupported.rows[1].name)
+    AssertEqual("1 skill needs training", unsupported.headerText)
+
+    GetLocale = originalGetLocale
+    STEP.SkillRegistry:BuildLookup()
 end)
 
 Test("Scanner baseline is silent and persists canonical data", function()

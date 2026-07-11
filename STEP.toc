@@ -17,6 +17,7 @@ Services\Database.lua
 Services\ConfigStore.lua
 Services\EquipmentResolver.lua
 Services\SkillScanner.lua
+UI\ViewModel.lua
 Services\DebugProbe.lua
 Core.lua
 SlashCommands.lua
