@@ -469,3 +469,72 @@ Arquivos originais em `World of Warcraft/_anniversary_/Screenshots/`.
 | Soma unitária como modelo de tempo | Validada como decisão técnica. |
 | Evento global de fila | Não observado e não necessário para o modelo. |
 | IDs diferentes para receitas da mesma profissão | Validado. |
+
+## Rodada 7 — Segundo personagem e preparação para Pesca
+
+| Campo | Valor |
+| --- | --- |
+| Data | 2026-07-11 |
+| Build | `0.1.0-alpha` |
+| Classe | Druida |
+| Nível | 70 |
+| Perícias reconhecidas | 11 |
+| Linhas numéricas desconhecidas | 8 |
+| Resultado geral | Aprovado |
+
+### Perícias elegíveis reconhecidas
+
+O segundo personagem confirmou:
+
+```text
+combat.daggers 49/350
+combat.defense 350/350
+combat.maces 1/350
+combat.staves 113/350
+combat.two_handed_maces 154/350
+combat.unarmed 7/350
+primary.enchanting 375/375
+primary.engineering 375/375
+secondary.cooking 375/375
+secondary.first_aid 375/375
+secondary.fishing 325/375
+```
+
+Conclusões:
+
+- o scanner funcionou em uma segunda classe e personagem;
+- perícias completas e incompletas foram lidas corretamente;
+- `secondary.fishing` foi reconhecida com tracker `fishing`;
+- máximos de combate `350` e profissão `375` foram preservados sem confusão.
+
+### Linhas excluídas
+
+As oito linhas desconhecidas foram:
+
+- Balance;
+- Cloth;
+- Feral Combat;
+- Language: Common;
+- Language: Darnassian;
+- Leather;
+- Restoration;
+- Riding.
+
+Todas são especializações, armaduras, idiomas ou Montaria e permanecem fora do escopo conforme o PRD. Em particular, `Riding 300/300` confirma que uma linha numérica completa pode continuar corretamente excluída.
+
+### Evidências
+
+- `WoWScrnShot_071126_140250.jpg`: contagem e primeira parte do retrato.
+- `WoWScrnShot_071126_140258.jpg`: Pesca, linhas excluídas e fim do retrato.
+
+Arquivos originais em `World of Warcraft/_anniversary_/Screenshots/`.
+
+### Atualização da matriz
+
+| Cenário | Estado após a rodada 7 |
+| --- | --- |
+| Scanner `enUS` em segunda classe | Validado. |
+| Perícias completas | Validadas no retrato. |
+| Pesca aprendida | Validada como descoberta. |
+| Montaria numérica excluída | Validada. |
+| Eventos de Pesca | Pendente para a próxima rodada. |
