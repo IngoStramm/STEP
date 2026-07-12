@@ -3,7 +3,8 @@
 ## Notes: Tracks learned weapon and profession skills with configurable progress views, timing, and history.
 ## Notes-ptBR: Acompanha pericias aprendidas de armas e profissoes com progresso, tempo e historico configuraveis.
 ## Author: Ingo Stramm
-## Version: 0.2.0-alpha
+## Version: 0.2.1-alpha
+## X-Curse-Project-ID: 1608114
 ## SavedVariablesPerCharacter: STEPDB
 ## OptionalDeps: Decursive, WeakAuras
 ## DefaultState: enabled
