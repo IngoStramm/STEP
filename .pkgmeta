@@ -1,0 +1,19 @@
+package-as: STEP
+
+manual-changelog:
+  filename: CHANGELOG.md
+  markup-type: markdown
+
+ignore:
+  - .pkgmeta
+  - README.md
+  - CHANGELOG.md
+  - assets
+  - docs
+  - tests
+  - scripts
+  - .github
+  - .gitignore
+  - package.json
+  - package-lock.json
+  - "*.zip"

@@ -1,5 +1,9 @@
 # STEP — Skill Training & Evolution Panel
 
+<p align="center">
+  <img src="assets/step-logo.png" alt="STEP logo" width="256">
+</p>
+
 STEP is a World of Warcraft Anniversary / Burning Crusade Classic addon for tracking learned weapon and profession skill progress in a compact, configurable panel.
 
 The current alpha has been validated in game with weapon skills, primary professions, secondary professions, active-time history, sharing, configurable notifications, presets, and synchronized native/standalone settings.
