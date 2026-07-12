@@ -27,7 +27,8 @@ local categoryTextKeys = {
 local visibilityValues = { "hidden", "expanded", "compact" }
 local sortValues = { "progress", "alphabetical" }
 local combatValues = { "keep", "compact", "hide" }
-local notificationValues = { "exaggerated", "discreet", "none" }
+local notificationPositionValues = { "upper", "center", "lower" }
+local soundChannelValues = { "Master", "SFX", "Ambience", "Music", "Dialog" }
 
 local visibilityTextKeys = {
     hidden = "OPTION_VISIBILITY_HIDDEN",
@@ -46,10 +47,18 @@ local combatTextKeys = {
     hide = "OPTION_COMBAT_HIDE",
 }
 
-local notificationTextKeys = {
-    exaggerated = "OPTION_NOTIFY_EXAGGERATED",
-    discreet = "OPTION_NOTIFY_DISCREET",
-    none = "OPTION_NOTIFY_NONE",
+local notificationPositionTextKeys = {
+    upper = "OPTION_NOTIFICATION_POSITION_UPPER",
+    center = "OPTION_NOTIFICATION_POSITION_CENTER",
+    lower = "OPTION_NOTIFICATION_POSITION_LOWER",
+}
+
+local soundChannelTextKeys = {
+    Master = "OPTION_SOUND_CHANNEL_MASTER",
+    SFX = "OPTION_SOUND_CHANNEL_SFX",
+    Ambience = "OPTION_SOUND_CHANNEL_AMBIENCE",
+    Music = "OPTION_SOUND_CHANNEL_MUSIC",
+    Dialog = "OPTION_SOUND_CHANNEL_DIALOG",
 }
 
 local presetTextKeys = {
@@ -113,6 +122,9 @@ local function CreateCheck(parent, label, getter, setter, tooltip)
 end
 
 local function GetEnumLabel(value, textKeys)
+    if type(textKeys) == "function" then
+        return textKeys(value)
+    end
     return STEP:GetText(textKeys and textKeys[value] or tostring(value))
 end
 
@@ -316,11 +328,130 @@ function OptionsControls:CreateLabeledEnum(parent, prefix, label, width, values,
     return control
 end
 
-local function CreateScaleSlider(parent, prefix)
+function OptionsControls:CreateSoundSelector(parent, prefix, label, width, getter, setter)
+    local control = {
+        getter = getter,
+        setter = setter,
+        rows = {},
+    }
+    control.label = CreateText(parent, label, "GameFontHighlightSmall")
+    control.button = CreateFrame("Button", nil, parent, "UIPanelButtonTemplate")
+    control.button:SetSize(width, 22)
+    control.frame = control.button
+
+    local backdropTemplate = BackdropTemplateMixin and "BackdropTemplate" or nil
+    local menu = CreateFrame("Frame", self:GetUniqueName(prefix .. "Menu"), UIParent, backdropTemplate)
+    control.menu = menu
+    menu:SetSize(width + 30, 270)
+    menu:SetFrameStrata("FULLSCREEN_DIALOG")
+    menu:SetClampedToScreen(true)
+    menu:EnableMouse(true)
+    menu:EnableMouseWheel(true)
+    if menu.SetBackdrop then
+        menu:SetBackdrop({
+            bgFile = "Interface\\DialogFrame\\UI-DialogBox-Background-Dark",
+            edgeFile = "Interface\\Tooltips\\UI-Tooltip-Border",
+            tile = true,
+            tileSize = 16,
+            edgeSize = 16,
+            insets = { left = 4, right = 4, top = 4, bottom = 4 },
+        })
+        menu:SetBackdropColor(0.04, 0.04, 0.04, 0.98)
+    end
+    menu:Hide()
+
+    local scroll = CreateFrame("ScrollFrame", nil, menu, "UIPanelScrollFrameTemplate")
+    scroll:SetPoint("TOPLEFT", menu, "TOPLEFT", 8, -8)
+    scroll:SetPoint("BOTTOMRIGHT", menu, "BOTTOMRIGHT", -28, 8)
+    local content = CreateFrame("Frame", nil, scroll)
+    content:SetWidth(width - 2)
+    scroll:SetScrollChild(content)
+    control.scroll = scroll
+    control.content = content
+
+    local values = STEP.SoundRegistry and STEP.SoundRegistry:GetValues() or { "none" }
+    local rowHeight = 18
+    content:SetHeight(math.max(1, #values * rowHeight))
+    for index = 1, #values do
+        local value = values[index]
+        local row = CreateFrame("Button", nil, content)
+        row:SetHeight(rowHeight)
+        row:SetPoint("TOPLEFT", content, "TOPLEFT", 0, -(index - 1) * rowHeight)
+        row:SetPoint("TOPRIGHT", content, "TOPRIGHT", 0, -(index - 1) * rowHeight)
+        row.highlight = row:CreateTexture(nil, "BACKGROUND")
+        row.highlight:SetAllPoints()
+        row.highlight:SetColorTexture(0.2, 0.45, 0.8, 0.25)
+        row.highlight:Hide()
+        row.mark = CreateText(row, "", "GameFontHighlightSmall")
+        row.mark:SetPoint("LEFT", row, "LEFT", 2, 0)
+        row.text = CreateText(row, STEP.SoundRegistry and STEP.SoundRegistry:GetLabel(value) or tostring(value), "GameFontHighlightSmall")
+        row.text:SetPoint("LEFT", row, "LEFT", 16, 0)
+        row:SetScript("OnEnter", function(self)
+            self.highlight:Show()
+        end)
+        row:SetScript("OnLeave", function(self)
+            self.highlight:Hide()
+        end)
+        row:SetScript("OnClick", function()
+            setter(value)
+            control:Refresh()
+            menu:Hide()
+        end)
+        row.value = value
+        control.rows[#control.rows + 1] = row
+    end
+
+    menu:SetScript("OnMouseWheel", function(_, delta)
+        local maxScroll = math.max(0, content:GetHeight() - scroll:GetHeight())
+        local nextScroll = math.max(0, math.min(maxScroll, scroll:GetVerticalScroll() - delta * rowHeight * 3))
+        scroll:SetVerticalScroll(nextScroll)
+    end)
+
+    function control:PositionMenu()
+        self.menu:ClearAllPoints()
+        local top = self.button:GetTop() or 0
+        local screenHeight = UIParent and UIParent:GetHeight() or 768
+        if top > screenHeight * 0.45 then
+            self.menu:SetPoint("TOPLEFT", self.button, "BOTTOMLEFT", 0, -2)
+        else
+            self.menu:SetPoint("BOTTOMLEFT", self.button, "TOPLEFT", 0, 2)
+        end
+    end
+    function control:Refresh()
+        local current = self.getter()
+        self.button:SetText(STEP.SoundRegistry and STEP.SoundRegistry:GetLabel(current) or tostring(current))
+        for index = 1, #self.rows do
+            self.rows[index].mark:SetText(self.rows[index].value == current and ">" or "")
+        end
+    end
+    function control:SetPoint(relativeTo, x, y)
+        self.label:SetPoint("TOPLEFT", relativeTo, "TOPLEFT", x, y)
+        self.button:SetPoint("TOPLEFT", self.label, "BOTTOMLEFT", 0, -4)
+    end
+    control.button:SetScript("OnClick", function()
+        if CloseDropDownMenus then
+            CloseDropDownMenus()
+        end
+        if menu:IsShown() then
+            menu:Hide()
+        else
+            control:Refresh()
+            control:PositionMenu()
+            menu:Show()
+        end
+    end)
+    control.button:SetScript("OnHide", function()
+        menu:Hide()
+    end)
+    control:Refresh()
+    return control
+end
+
+local function CreateScaleSlider(parent, prefix, labelKey, configPath)
     local control = {
         refreshing = false,
     }
-    control.label = CreateText(parent, STEP:GetText("OPTION_SCALE"), "GameFontHighlightSmall")
+    control.label = CreateText(parent, STEP:GetText(labelKey or "OPTION_SCALE"), "GameFontHighlightSmall")
     control.value = CreateText(parent, "", "GameFontHighlightSmall")
     control.value:SetJustifyH("RIGHT")
 
@@ -344,7 +475,7 @@ local function CreateScaleSlider(parent, prefix)
         local rounded = math.floor(value * 20 + 0.5) / 20
         control.value:SetText(tostring(math.floor(rounded * 100 + 0.5)) .. "%")
         if not control.refreshing then
-            STEP.ConfigStore:Set("panel.scale", rounded, "options")
+            STEP.ConfigStore:Set(configPath or "panel.scale", rounded, "options")
         end
     end)
 
@@ -355,7 +486,7 @@ local function CreateScaleSlider(parent, prefix)
     end
     function control:Refresh()
         self.refreshing = true
-        local value = STEP.ConfigStore:Get("panel.scale") or 1
+        local value = STEP.ConfigStore:Get(configPath or "panel.scale") or 1
         self.slider:SetValue(value)
         self.value:SetText(tostring(math.floor(value * 100 + 0.5)) .. "%")
         self.refreshing = false
@@ -547,6 +678,7 @@ function OptionsControls:BuildSurface(parent, prefix)
     AddGeneralCheck(surface, "OPTION_SHOW_SUMMARY", "panel.showHeaderSummary", 16, -182)
     AddGeneralCheck(surface, "OPTION_HIDE_MAXED", "panel.hideMaxed", 16, -210)
     AddGeneralCheck(surface, "OPTION_AUTO_EQUIPPED", "panel.autoShowEquipped", 16, -238)
+    AddGeneralCheck(surface, "OPTION_SHOW_NOTIFICATIONS", "notifications.enabled", 16, -312)
 
     surface.reset = CreateFrame("Button", nil, child, "UIPanelButtonTemplate")
     surface.reset:SetSize(150, 24)
@@ -557,7 +689,7 @@ function OptionsControls:BuildSurface(parent, prefix)
         STEP:Print(STEP:GetText("PANEL_POSITION_RESET"))
     end)
 
-    surface.scale = CreateScaleSlider(child, prefix .. "Scale")
+    surface.scale = CreateScaleSlider(child, prefix .. "Scale", "OPTION_SCALE", "panel.scale")
     surface.scale:SetPoint(child, 356, -98)
 
     surface.sort = self:CreateLabeledEnum(child, prefix .. "Sort", STEP:GetText("OPTION_SORT"), 220, sortValues, function()
@@ -576,31 +708,69 @@ function OptionsControls:BuildSurface(parent, prefix)
     surface.combat:SetPoint(child, 356, -224)
     surface.generalEnums[#surface.generalEnums + 1] = surface.combat
 
-    surface.gainNotification = self:CreateLabeledEnum(child, prefix .. "Gain", STEP:GetText("OPTION_GAIN_NOTIFICATION"), 220, notificationValues, function()
-        return STEP.ConfigStore:Get("notifications.gainMode") or "discreet"
+    surface.notificationPosition = self:CreateLabeledEnum(child, prefix .. "NotificationPosition", STEP:GetText("OPTION_NOTIFICATION_POSITION"), 220, notificationPositionValues, function()
+        return STEP.ConfigStore:Get("notifications.position") or "upper"
     end, function(value)
-        STEP.ConfigStore:Set("notifications.gainMode", value, "options")
-    end, notificationTextKeys)
-    surface.gainNotification:SetPoint(child, 356, -284)
-    surface.generalEnums[#surface.generalEnums + 1] = surface.gainNotification
+        STEP.ConfigStore:Set("notifications.position", value, "options")
+    end, notificationPositionTextKeys)
+    surface.notificationPosition:SetPoint(child, 356, -284)
+    surface.generalEnums[#surface.generalEnums + 1] = surface.notificationPosition
 
-    surface.maxNotification = self:CreateLabeledEnum(child, prefix .. "Max", STEP:GetText("OPTION_MAX_NOTIFICATION"), 220, notificationValues, function()
-        return STEP.ConfigStore:Get("notifications.maxMode") or "exaggerated"
+    surface.notificationSound = self:CreateSoundSelector(child, prefix .. "NotificationSound", STEP:GetText("OPTION_NOTIFICATION_SOUND"), 220, function()
+        return STEP.ConfigStore:Get("notifications.sound") or "none"
     end, function(value)
-        STEP.ConfigStore:Set("notifications.maxMode", value, "options")
-    end, notificationTextKeys)
-    surface.maxNotification:SetPoint(child, 356, -344)
-    surface.generalEnums[#surface.generalEnums + 1] = surface.maxNotification
+        if STEP.ConfigStore:Set("notifications.sound", value, "options") and STEP.SoundRegistry then
+            STEP.SoundRegistry:Play(value, STEP.ConfigStore:Get("notifications.soundChannel") or "Master")
+        end
+    end)
+    surface.notificationSound:SetPoint(child, 356, -344)
+    surface.generalEnums[#surface.generalEnums + 1] = surface.notificationSound
+
+    surface.soundChannel = self:CreateLabeledEnum(child, prefix .. "SoundChannel", STEP:GetText("OPTION_SOUND_CHANNEL"), 220, soundChannelValues, function()
+        return STEP.ConfigStore:Get("notifications.soundChannel") or "Master"
+    end, function(value)
+        if STEP.ConfigStore:Set("notifications.soundChannel", value, "options") and STEP.SoundRegistry then
+            STEP.SoundRegistry:Play(STEP.ConfigStore:Get("notifications.sound") or "none", value)
+        end
+    end, soundChannelTextKeys)
+    surface.soundChannel:SetPoint(child, 356, -404)
+    surface.generalEnums[#surface.generalEnums + 1] = surface.soundChannel
+
+    surface.notificationScale = CreateScaleSlider(child, prefix .. "NotificationScale", "OPTION_NOTIFICATION_SCALE", "notifications.scale")
+    surface.notificationScale:SetPoint(child, 356, -464)
+
+    surface.previewNotification = CreateFrame("Button", nil, child, "UIPanelButtonTemplate")
+    surface.previewNotification:SetSize(150, 24)
+    surface.previewNotification:SetPoint("TOPLEFT", child, "TOPLEFT", 16, -464)
+    surface.previewNotification:SetText(STEP:GetText("OPTION_PREVIEW_NOTIFICATION"))
+    surface.previewNotification:SetScript("OnClick", function()
+        if STEP.NotificationQueue then
+            STEP.NotificationQueue:Preview(false)
+        end
+    end)
+    surface.previewNotification:SetScript("OnEnter", function(self)
+        if GameTooltip then
+            GameTooltip:SetOwner(self, "ANCHOR_CURSOR")
+            GameTooltip:ClearLines()
+            GameTooltip:AddLine(STEP:GetText("OPTION_PREVIEW_NOTIFICATION_TOOLTIP"), 1, 1, 1, true)
+            GameTooltip:Show()
+        end
+    end)
+    surface.previewNotification:SetScript("OnLeave", function()
+        if GameTooltip then
+            GameTooltip:Hide()
+        end
+    end)
 
     surface.presetsTitle = CreateText(child, STEP:GetText("OPTIONS_PRESETS"), "GameFontNormal")
-    surface.presetsTitle:SetPoint("TOPLEFT", child, "TOPLEFT", 16, -408)
+    surface.presetsTitle:SetPoint("TOPLEFT", child, "TOPLEFT", 16, -528)
     surface.presetButtons = {}
     local presetOrder = { "weapons", "professions", "complete", "empty" }
     for index = 1, #presetOrder do
         local preset = presetOrder[index]
         local button = CreateFrame("Button", nil, child, "UIPanelButtonTemplate")
         button:SetSize(146, 24)
-        button:SetPoint("TOPLEFT", child, "TOPLEFT", 16 + (index - 1) * 158, -432)
+        button:SetPoint("TOPLEFT", child, "TOPLEFT", 16 + (index - 1) * 158, -552)
         button:SetText(STEP:GetText(presetTextKeys[preset]))
         button:SetScript("OnClick", function()
             self:RequestPreset(preset)
@@ -609,7 +779,7 @@ function OptionsControls:BuildSurface(parent, prefix)
     end
 
     surface.skillsTitle = CreateText(child, STEP:GetText("OPTIONS_SKILLS"), "GameFontNormal")
-    surface.skillsTitle:SetPoint("TOPLEFT", child, "TOPLEFT", 16, -478)
+    surface.skillsTitle:SetPoint("TOPLEFT", child, "TOPLEFT", 16, -598)
 
     for categoryIndex = 1, #categoryOrder do
         local category = categoryOrder[categoryIndex]
@@ -641,12 +811,13 @@ function OptionsControls:RefreshSurface(surface)
         surface.generalChecks[index]:Refresh()
     end
     surface.scale:Refresh()
+    surface.notificationScale:Refresh()
     for index = 1, #surface.generalEnums do
         surface.generalEnums[index]:Refresh()
     end
 
     local snapshot = STEP.SkillScanner and STEP.SkillScanner:GetSnapshot() or {}
-    local y = -504
+    local y = -624
     local visibleIndex = 0
     for categoryIndex = 1, #categoryOrder do
         local category = categoryOrder[categoryIndex]
@@ -699,7 +870,7 @@ function OptionsControls:RefreshSurface(surface)
             row:Hide()
         end
     end
-    surface.child:SetHeight(math.max(520, -y + 24))
+    surface.child:SetHeight(math.max(640, -y + 24))
 end
 
 function OptionsControls:RefreshAll()

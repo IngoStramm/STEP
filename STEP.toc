@@ -5,6 +5,7 @@
 ## Author: Ingo Stramm
 ## Version: 0.2.0-alpha
 ## SavedVariablesPerCharacter: STEPDB
+## OptionalDeps: Decursive, WeakAuras
 ## DefaultState: enabled
 
 Constants.lua
@@ -13,16 +14,23 @@ Locale\enUS.lua
 Locale\ptBR.lua
 Data\SkillRegistry.lua
 Services\EventBus.lua
+Services\SoundRegistry.lua
 Services\Database.lua
 Services\ConfigStore.lua
 Services\EquipmentResolver.lua
 Services\SkillScanner.lua
+Services\ActivityTracker.lua
+Services\CombatTracker.lua
+Services\ProfessionTracker.lua
+Services\HistoryStore.lua
+Services\NotificationQueue.lua
 Services\ConfigActions.lua
 UI\ViewModel.lua
 UI\MainPanel.lua
 UI\OptionsControls.lua
 UI\NativeOptions.lua
 UI\ConfigWindow.lua
+UI\HistoryWindow.lua
 Services\DebugProbe.lua
 Core.lua
 SlashCommands.lua

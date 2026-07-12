@@ -53,8 +53,13 @@ local generalFields = {
     ["panel.hideMaxed"] = IsBoolean,
     ["panel.combatBehavior"] = function(value) return IsEnum("combatBehavior", value) end,
     ["panel.autoShowEquipped"] = IsBoolean,
-    ["notifications.gainMode"] = function(value) return IsEnum("notificationMode", value) end,
-    ["notifications.maxMode"] = function(value) return IsEnum("notificationMode", value) end,
+    ["notifications.enabled"] = IsBoolean,
+    ["notifications.scale"] = IsScale,
+    ["notifications.position"] = function(value) return IsEnum("notificationPosition", value) end,
+    ["notifications.sound"] = function(value) return STEP.SoundRegistry and STEP.SoundRegistry:IsValid(value) end,
+    ["notifications.soundChannel"] = function(value)
+        return value == "Master" or value == "SFX" or value == "Ambience" or value == "Music" or value == "Dialog"
+    end,
 }
 
 local skillFields = {

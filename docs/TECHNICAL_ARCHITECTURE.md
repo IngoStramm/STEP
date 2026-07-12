@@ -122,6 +122,7 @@ STEP/
   Data/
     SkillRegistry.lua
   Services/
+    SoundRegistry.lua
     Database.lua
     ConfigStore.lua
     ConfigActions.lua
@@ -312,6 +313,13 @@ O `ViewModel` apenas projeta esse conjunto ativo. Ele não controla relógio nem
 - agrupa ganhos rápidos da mesma perícia;
 - descarta itens vencidos;
 - entrega um item de cada vez ao frame visual.
+
+O som é resolvido por `SoundRegistry`, que mantém sons nativos e um catálogo
+amplo de caminhos conhecidos do WeakAuras e do Decursive, equivalente ao
+oferecido pelo BAD. Esses addons são dependências opcionais: seus sons só
+aparecem no seletor quando o addon correspondente está instalado, nenhum
+arquivo de áudio de terceiros é redistribuído e falhas de reprodução usam um
+som nativo seguro como fallback.
 
 ### 6.13 `ShareService`
 
@@ -875,8 +883,11 @@ STEPDB = {
       autoShowEquipped = false,
     },
     notifications = {
-      gainMode = "discreet",
-      maxMode = "exaggerated",
+      enabled = true,
+      scale = 1,
+      position = "upper",
+      sound = "none",
+      soundChannel = "Master",
     },
     skills = {
       ["combat.swords"] = {
@@ -986,7 +997,9 @@ A Fase 1 elevou o schema parcial de diagnóstico de `1` para `2` por meio de `mi
 visibility: hidden | expanded | compact
 sortMode: progress | alphabetical
 combatBehavior: keep | compact | hide
-notificationMode: exaggerated | discreet | none
+notificationPosition: upper | center | lower
+notificationSound: none | native key | optional WeakAuras/Decursive key
+soundChannel: Master | SFX | Ambience | Music | Dialog
 ```
 
 O valor persistido `compact` significa `Compacto e expandido`, pois o expandido é sempre um superconjunto.
@@ -1026,6 +1039,8 @@ A janela independente usa `BasicFrameTemplateWithInset`, é arrastável, salva p
 - posição limitada à tela e recuperável.
 
 Cada linha é composta por ícone, nome, valor atual, separador e máximo. Nome e valores usam âncoras separadas para manter alinhamento.
+O frame-base usa largura compacta de 232 px, linhas de 19 px, ícones de 16 px e
+margens de 5 px. A escala configurável é aplicada sobre esse conjunto.
 
 ### 17.2 Estados visual e funcional
 
@@ -1046,11 +1061,11 @@ maximum e '/'            -> branco
 
 ### 17.4 Legibilidade e localização
 
-O layout deve aceitar nomes localizados longos. A implementação testará, nesta ordem:
+O layout deve aceitar nomes localizados longos. A implementação aplica, nesta ordem:
 
-1. largura adaptativa com limite máximo;
-2. abreviação localizada conhecida;
-3. truncamento visual com nome completo no tooltip.
+1. abreviação localizada conhecida para armas de uma e duas mãos;
+2. limite de 18 caracteres com sufixo `...`;
+3. nome localizado completo no tooltip.
 
 Não se deve reduzir a fonte a ponto de prejudicar a leitura apenas para manter uma largura rígida.
 
@@ -1092,6 +1107,10 @@ A janela de histórico usa linhas reutilizáveis e duas visões:
 - resumo por perícia;
 - detalhes da perícia selecionada.
 
+O compartilhamento usa um destino efêmero escolhido na própria janela. A V1 oferece Dizer, Grupo, Raid, Guilda e Sussurro; opções dependentes de grupo, raid ou guilda ficam desativadas quando indisponíveis. Sussurro exige destinatário antes do envio. A escolha não é persistida em `SavedVariables`.
+
+As ações `Compartilhar selecionada`, `Compartilhar visualização` e `Limpar todo o histórico` reutilizam consultas do `HistoryStore`. `Compartilhar visualização` sempre informa a quantidade de mensagens e exige confirmação; lotes com mais de uma linha também exigem confirmação quando iniciados por outra superfície. A limpeza completa sempre exige confirmação modal.
+
 Filtros são estado efêmero da janela, exceto se futuramente houver decisão explícita de persistir o último filtro.
 
 Consultas são paginadas ou limitadas ao intervalo visível. A janela nunca cria 2.000 frames de linha simultaneamente.
@@ -1100,57 +1119,43 @@ Consultas são paginadas ou limitadas ao intervalo visível. A janela nunca cria
 
 ### 19.1 Separação entre decisão e apresentação
 
-`NotificationQueue` decide se um evento deve aparecer e em qual modo. `NotificationFrame` apenas apresenta o item recebido.
+`NotificationQueue` decide se um evento deve aparecer, organiza a fila e fornece a prévia. O frame apresenta um único estilo visual tanto para ganhos comuns quanto para o marco de máximo; somente o texto muda conforme o evento.
 
 O frame:
 
-- usa `EnableMouse(false)`;
-- não cobre nem captura ações protegidas;
-- usa `AnimationGroup` quando possível;
-- é ocultado completamente ao terminar;
-- não mantém `OnUpdate` depois da animação.
+- é independente do painel principal;
+- não captura interação do jogador;
+- exibe ícone, nome localizado e progresso da perícia;
+- permanece ancorado pelo centro visual do conjunto de ícone e texto;
+- aplica a escala somente depois de centralizar o conteúdo, evitando deslocamento horizontal;
+- usa uma duração inicial de aproximadamente 1,8 segundo, seguida de fade;
+- é ocultado completamente ao terminar.
 
-### 19.2 Fila
+### 19.2 Configuração
 
-Parâmetros iniciais propostos:
+A V1 oferece um único tipo de notificação com controles globais de:
 
-| Parâmetro | Valor inicial |
+| Parâmetro | Valores |
 | --- | --- |
-| Máximo de itens pendentes | 5 |
-| Expiração de item pendente | 6 segundos |
-| Coalescência da mesma perícia | 0,75 segundo |
-| Duração exagerada | aproximadamente 2,4 segundos |
-| Duração discreta | aproximadamente 1,2 segundo |
+| Ativação | habilitada ou desabilitada |
+| Tamanho | 50% a 200% |
+| Posição | centro superior, centro ou centro inferior |
+| Som | nenhum, nativo selecionado ou catálogo amplo de WeakAuras/Decursive quando disponível |
+| Canal | principal, efeitos, ambiente, música ou diálogo |
 
-Se a fila estiver cheia, itens vencidos são removidos primeiro. Depois, ganhos comuns antigos podem ser compactados; um marco de máximo tem prioridade.
+Cada perícia mantém ainda uma opção independente para participar ou não das notificações. A tela de configuração fornece uma prévia visual e sonora que não altera progresso nem histórico. Alterar o som ou o canal também reproduz uma amostra imediatamente.
 
-### 19.3 Modo exagerado
+### 19.3 Fila
 
-- frame central independente do painel;
-- ícone grande;
-- escala, brilho e fade;
-- nome e `novo/máximo`;
-- indicação `+N` quando houver ganho múltiplo;
-- som destacado previamente validado.
+Eventos recebidos enquanto uma notificação está visível aguardam em ordem. Ao terminar o item atual, o próximo é apresentado automaticamente. Evoluções futuras poderão acrescentar coalescência e prioridade para marcos de máximo caso testes reais revelem excesso de eventos consecutivos.
 
-### 19.4 Modo discreto
+### 19.4 Marco de máximo
 
-- pulso da linha quando ela estiver visível;
-- texto curto próximo ao painel;
-- linha transitória quando a perícia estiver oculta no compacto;
-- som suave pertencente ao preset, se aprovado nos testes.
+O marco de máximo reutiliza tamanho e posição configurados. O texto informa explicitamente que a perícia atingiu o máximo. Se `Ocultar perícias completas` estiver ativo, a atualização do painel não interfere na apresentação da notificação.
 
-### 19.5 Marco de máximo
+### 19.5 Evoluções posteriores
 
-O marco de máximo usa configuração própria. Se `Ocultar perícias completas` estiver ativo, a remoção da linha é adiada até a apresentação terminar.
-
-### 19.6 Sons
-
-A V1 usa sons internos do jogo por `PlaySound` ou `PlaySoundFile`, com canal explicitamente escolhido e fallback silencioso.
-
-Não haverá controle de volume próprio, pois a API não oferece um ajuste por reprodução que STEP possa representar com fidelidade. O jogador controla o canal nas opções de áudio do jogo.
-
-Sons, canal, duração e intensidade visual só serão fechados após teste no cliente. Seleção livre de sons continua fora da V1.
+Efeitos mais elaborados, como brilho ao redor do personagem, flash de tela, animações adicionais e sons configuráveis, ficam fora da V1. Eles poderão ser avaliados em uma versão posterior sem exigir um segundo modo de notificação na configuração atual.
 
 ## 20. Compartilhamento no chat
 
@@ -1169,6 +1174,7 @@ A divisão ocorre por unidade semântica — uma perícia ou campo — e não no
 - intervalo inicial entre mensagens: 0,40 segundo;
 - início somente após clique de confirmação;
 - cancelamento ao fechar a operação, sair do mundo ou ocorrer erro;
+- uma geração identifica a fila ativa e invalida callbacks temporizados depois do cancelamento;
 - detalhes permitidos para uma única perícia;
 - destino validado imediatamente antes de cada envio.
 
@@ -1387,8 +1393,8 @@ a Fase 2 está concluída; notificações visuais e sonoras permanecem na Fase 4
 
 ### Fase 4 — Notificações e compartilhamento
 
-- fila e modos visuais;
-- seleção e validação de sons;
+- fila e estilo visual configurável;
+- seleção rolável e validação de sons nativos e opcionais do WeakAuras/Decursive;
 - prévia e fila de chat;
 - testes de spam e legibilidade.
 

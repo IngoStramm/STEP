@@ -2,17 +2,20 @@
 
 STEP is a World of Warcraft Anniversary / Burning Crusade Classic addon for tracking learned weapon and profession skill progress in a compact, configurable panel.
 
-The Phase 1 data core is implemented and validated in game. **Phase 2** now includes the pure `ViewModel`, the validated main panel, and the first configuration slice. Native game options and a synchronized movable window expose general panel behavior plus per-skill visibility, logging, and notification participation.
+The current alpha has been validated in game with weapon skills, primary professions, secondary professions, active-time history, sharing, configurable notifications, presets, and synchronized native/standalone settings.
 
-## Planned features
+## Features
 
 - Compact and expanded progress views.
 - Per-skill visibility, logging, and notification settings.
 - Weapon, Defense, Unarmed, primary profession, and secondary profession tracking.
 - Active-time and online-time history per skill gain.
-- Discreet, exaggerated, or disabled skill-up notifications.
-- Summary and detailed history sharing through game chat.
+- A single customizable skill-up notification with position, size, sound, sound channel, and live preview controls.
+- Scrollable notification sound catalog with native sounds and optional WeakAuras/Decursive media.
+- Summary and detailed history sharing through game chat, with confirmation before clearing history.
+- Category controls and presets for quickly selecting weapons, professions, all learned skills, or an empty starting configuration.
 - Native AddOns settings and a synchronized movable configuration window.
+- Compact weapon labels and tooltips that preserve the full localized skill name.
 
 ## Development commands
 
@@ -21,6 +24,7 @@ The Phase 1 data core is implemented and validated in game. **Phase 2** now incl
 - `/step show|hide|lock|reset` — Control visibility, movement lock, and position.
 - `/step config` — Open the movable standalone configuration window.
 - `/step options` — Open STEP in the game's AddOns settings.
+- `/step log` — Open the skill history window.
 - `/step preset weapons|professions|complete|empty` — Apply a preset, with confirmation before customized choices are replaced.
 - `/step category combat|primary|secondary visibility expanded|compact|hidden` — Change visibility for one learned-skill category.
 - `/step category combat|primary|secondary log|notify on|off` — Change logging or notifications for one category.
@@ -64,6 +68,7 @@ Do not use GitHub's green **Code > Download ZIP** button for installation. That 
 
 ## Documentation
 
+- `CHANGELOG.md` — Release notes and user-facing changes.
 - `docs/PRD.md` — Approved product requirements.
 - `docs/TECHNICAL_ARCHITECTURE.md` — Approved technical architecture.
 - `docs/PHASE0_TEST_PLAN.md` — In-game API validation procedure.

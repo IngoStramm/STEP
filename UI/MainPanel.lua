@@ -8,12 +8,12 @@ local MainPanel = {
 }
 STEP.MainPanel = MainPanel
 
-local PANEL_WIDTH = 268
-local HEADER_HEIGHT = 24
-local ROW_HEIGHT = 22
-local SECTION_HEIGHT = 17
-local PADDING = 6
-local ICON_SIZE = 18
+local PANEL_WIDTH = 232
+local HEADER_HEIGHT = 22
+local ROW_HEIGHT = 19
+local SECTION_HEIGHT = 15
+local PADDING = 5
+local ICON_SIZE = 16
 
 local backdrop = {
     bgFile = "Interface\\Buttons\\WHITE8X8",
@@ -90,12 +90,12 @@ function MainPanel:AcquireRow(index)
 
     row.icon = row:CreateTexture(nil, "ARTWORK")
     row.icon:SetSize(ICON_SIZE, ICON_SIZE)
-    row.icon:SetPoint("LEFT", row, "LEFT", 1, 0)
+    row.icon:SetPoint("LEFT", row, "LEFT", 0, 0)
     row.icon:SetTexCoord(0.08, 0.92, 0.08, 0.92)
 
     row.name = CreateFont(row, "GameFontHighlightSmall", "LEFT")
-    row.name:SetPoint("LEFT", row.icon, "RIGHT", 5, 0)
-    row.name:SetWidth(156)
+    row.name:SetPoint("LEFT", row.icon, "RIGHT", 4, 0)
+    row.name:SetWidth(128)
 
     row.maximum = CreateFont(row, "GameFontHighlightSmall", "RIGHT")
     row.maximum:SetPoint("RIGHT", row, "RIGHT", -1, 0)
@@ -137,7 +137,7 @@ function MainPanel:AcquireSection(index)
     section.separator:SetPoint("TOPRIGHT", section, "TOPRIGHT", 0, 0)
     section.separator:SetColorTexture(0.45, 0.45, 0.50, 0.45)
     section.label = CreateFont(section, "GameFontNormalSmall", "LEFT")
-    section.label:SetPoint("BOTTOMLEFT", section, "BOTTOMLEFT", 1, 0)
+    section.label:SetPoint("BOTTOMLEFT", section, "BOTTOMLEFT", 0, 0)
     section.label:SetPoint("BOTTOMRIGHT", section, "BOTTOMRIGHT", -1, 0)
 
     self.sectionPool[index] = section

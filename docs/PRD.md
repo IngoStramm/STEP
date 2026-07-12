@@ -10,7 +10,7 @@
 | Versão do documento | 1.1 |
 | Status | Aprovado como baseline funcional |
 | Data da aprovação | 2026-07-11 |
-| Última atualização | 2026-07-11 |
+| Última atualização | 2026-07-12 |
 | Idioma canônico | Português do Brasil |
 
 ## 1. Resumo do produto
@@ -32,7 +32,7 @@ STEP deve resolver esse problema com uma visualização discreta, disponível du
 1. Exibir o progresso das perícias aprendidas escolhidas pelo jogador.
 2. Permitir uma visualização compacta para acompanhamento contínuo e uma visualização expandida para consulta completa.
 3. Medir e registrar o tempo ativo dedicado ao treinamento de cada perícia.
-4. Celebrar ganhos de perícia com níveis configuráveis de notificação.
+4. Celebrar ganhos de perícia com uma notificação visual e sonora configurável.
 5. Manter um histórico por personagem, com visão resumida e detalhada.
 6. Permitir o compartilhamento controlado de resumos no chat.
 7. Funcionar no idioma do cliente sem depender de nomes em inglês para identificar perícias.
@@ -147,6 +147,9 @@ Cada linha deve mostrar:
 ```
 
 O nome deve ser exibido porque ícones semelhantes podem tornar ambíguas perícias de uma e duas mãos.
+No painel compacto, armas de uma e duas mãos usam abreviações conhecidas pela
+comunidade, como `1H Maces` e `2H Maces`. Outros nomes ficam limitados a 18
+caracteres com `...`; o tooltip sempre preserva o nome localizado completo.
 
 ### 8.2 Cores
 
@@ -274,8 +277,10 @@ A janela individual deve:
 - Ocultar perícias completas.
 - Comportamento em combate.
 - Sempre mostrar temporariamente a perícia da arma equipada no compacto.
-- Modo global para ganhos comuns.
-- Modo global para o momento em que uma perícia atinge o máximo.
+- Ativar ou desativar globalmente as notificações.
+- Tamanho e posição globais da notificação.
+- Som da notificação, incluindo a opção sem som, e canal de áudio.
+- Prévia visual e sonora da notificação configurada, sem alterar progresso nem histórico.
 
 ### 10.3 Configurações por perícia
 
@@ -323,34 +328,33 @@ Ao passar o mouse sobre uma linha, o tooltip deve poder mostrar:
 
 ## 12. Notificações
 
-### 12.1 Modos globais
+### 12.1 Notificação visual e sonora configurável
 
-O jogador deve configurar separadamente ganhos comuns e o momento em que uma perícia atinge o máximo. Cada um desses dois tipos de evento deve permitir três modos:
+STEP usa um único estilo de notificação visual e sonora para ganhos comuns e para o
+momento em que uma perícia atinge o máximo. O texto muda conforme o evento,
+mas a apresentação permanece consistente.
 
-#### Exagerada
+O jogador pode configurar globalmente:
 
-- Ícone grande da perícia em destaque.
-- Animação de escala, brilho e desaparecimento.
-- Texto central informando o novo valor.
-- Som destacado.
+- ativar ou desativar as notificações;
+- tamanho, entre 50% e 200%;
+- posição: centro superior, centro ou centro inferior;
+- som: nenhum, sons nativos selecionados ou o catálogo amplo disponibilizado
+  pelos addons opcionais WeakAuras e Decursive;
+- o som é escolhido por um botão que abre uma lista rolável, adequada ao catálogo
+  extenso e sem o limite visual do menu suspenso padrão do jogo;
+- canal de áudio: principal, efeitos, ambiente, música ou diálogo;
+- uma prévia visual e sonora sem alterar a perícia nem o histórico.
 
-#### Discreta
-
-- Brilho ou pulso breve na linha.
-- Texto pequeno próximo ao painel.
-- Som suave, se fizer parte do preset discreto.
-
-#### Nenhuma
-
-- Apenas os valores e o histórico são atualizados.
+O checkbox `Notificações` de cada perícia continua determinando se aquela
+perícia participa dos alertas quando a opção global está ativada.
 
 ### 12.2 Regras
 
 - A participação pode ser desabilitada individualmente por perícia.
-- Atingir o máximo deve poder usar um modo diferente do ganho comum.
 - Ganhos rápidos devem entrar em uma fila e não se sobrepor.
 - A fila não deve manter notificações antigas por tempo excessivo.
-- Se uma perícia oculta no compacto subir no modo discreto, sua linha deve aparecer temporariamente, receber o efeito e desaparecer novamente.
+- Se uma perícia oculta no compacto subir, sua linha pode aparecer temporariamente sem alterar a preferência persistida.
 - Se `Ocultar perícias completas` estiver ativo, uma perícia que acabou de atingir o máximo deve permanecer visível pelo tempo necessário para a celebração antes de ser ocultada.
 
 ## 13. Medição de tempo
@@ -704,8 +708,7 @@ Atualizações futuras do addon devem preservar dados válidos e possuir migraç
 
 - STEP não deve executar ações de jogo pelo jogador.
 - Nenhuma notificação deve bloquear cliques ou interferir com frames protegidos.
-- A notificação exagerada deve ser visível sem permanecer tempo excessivo na tela.
-- A notificação discreta não deve causar poluição visual.
+- A notificação deve ser breve, legível e não causar poluição visual.
 - Compartilhamento só ocorre após ação e confirmação do jogador.
 - Limpeza de histórico completo exige confirmação explícita.
 - O painel deve permanecer dentro dos limites da tela.
@@ -718,7 +721,7 @@ STEP será considerado funcionalmente bem-sucedido quando:
 1. Um jogador puder configurar um painel apenas de armas, apenas de profissões ou misto.
 2. O painel puder permanecer aberto durante o jogo sem ocupar espaço excessivo.
 3. O histórico diferenciar claramente tempo ativo de tempo decorrido.
-4. Ganhos de perícia forem percebidos no modo escolhido sem spam.
+4. Ganhos de perícia forem percebidos na posição e tamanho escolhidos, sem spam.
 5. Os resumos compartilhados forem úteis e curtos.
 6. O addon permanecer estável durante sessões longas e após reloads.
 
@@ -742,7 +745,7 @@ Os itens abaixo não alteram o comportamento esperado, mas precisam de investiga
 6. Eventos confiáveis para produção em fila, coleta e Pesca.
 7. Estrutura e versionamento das SavedVariables.
 8. Limite e política de retenção do histórico.
-9. Recursos visuais e sonoros dos modos de notificação.
+9. Recursos visuais e sonoros para uma futura evolução de alerta reforçado.
 10. Fila, duração e descarte de notificações rápidas.
 11. Divisão e temporização segura das mensagens de chat.
 12. Estratégia de testes automatizados e testes dentro do jogo.
@@ -769,7 +772,7 @@ Este PRD foi aprovado como baseline funcional em 2026-07-11. A aprovação confi
 Durante o desenvolvimento e os testes em jogo:
 
 - O layout do painel principal e das configurações pode ser ajustado para melhorar leitura, densidade, contraste, espaçamento e navegação.
-- Os modos de notificação devem ser prototipados e testados visualmente antes de seus efeitos, dimensões, duração e sons serem considerados definitivos.
+- Uma futura evolução de alerta reforçado deve ser prototipada e testada visualmente antes de seus efeitos, dimensões, duração e sons serem considerados definitivos.
 - Ajustes puramente visuais que preservem o comportamento podem ser registrados diretamente na revisão seguinte deste documento.
 - Alterações que modifiquem escopo, padrões, fluxos, dados persistidos ou critérios de aceite exigem atualização explícita do PRD.
 - A Arquitetura Técnica e a implementação devem sempre seguir a revisão aprovada mais recente.

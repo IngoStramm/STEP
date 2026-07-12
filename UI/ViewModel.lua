@@ -117,8 +117,8 @@ local function AlphabeticalValue(value)
 end
 
 local function CompareAlphabetical(left, right)
-    local leftName = AlphabeticalValue(left.name)
-    local rightName = AlphabeticalValue(right.name)
+    local leftName = AlphabeticalValue(left.fullName or left.name)
+    local rightName = AlphabeticalValue(right.fullName or right.name)
     if leftName == rightName then
         return left.skillKey < right.skillKey
     end
@@ -135,13 +135,46 @@ local function CompareProgress(left, right)
     return left.progress < right.progress
 end
 
+local compactWeaponNames = {
+    ["combat.swords"] = { enUS = "1H Swords", ptBR = "Espadas 1M" },
+    ["combat.two_handed_swords"] = { enUS = "2H Swords", ptBR = "Espadas 2M" },
+    ["combat.axes"] = { enUS = "1H Axes", ptBR = "Machados 1M" },
+    ["combat.two_handed_axes"] = { enUS = "2H Axes", ptBR = "Machados 2M" },
+    ["combat.maces"] = { enUS = "1H Maces", ptBR = "Maças 1M" },
+    ["combat.two_handed_maces"] = { enUS = "2H Maces", ptBR = "Maças 2M" },
+}
+
+local function TruncateUTF8(value, maximumCharacters)
+    value = tostring(value or "")
+    local characters = {}
+    for character in value:gmatch("[%z\1-\127\194-\244][\128-\191]*") do
+        characters[#characters + 1] = character
+    end
+    if #characters <= maximumCharacters then
+        return value
+    end
+    local result = {}
+    for index = 1, maximumCharacters - 3 do
+        result[index] = characters[index]
+    end
+    return table.concat(result) .. "..."
+end
+
+local function GetCompactName(skillKey, fullName)
+    local names = compactWeaponNames[skillKey]
+    local locale = STEP.SkillRegistry and STEP.SkillRegistry.locale or "enUS"
+    local compactName = names and (names[locale] or names.enUS) or fullName
+    return TruncateUTF8(compactName, 18)
+end
+
 local function BuildRow(skillKey, data, entry, skillConfig, equippedSlots, transientState)
     local current = tonumber(data.current) or 0
     local maximum = tonumber(data.maximum) or 0
     local temporary = tonumber(data.temporary) or 0
     local modifier = tonumber(data.modifier) or 0
     local progress, progressState, isMaxed = GetProgress(current, maximum)
-    local name = entry.localizedName or data.name or entry.names.enUS or skillKey
+    local fullName = entry.localizedName or data.name or entry.names.enUS or skillKey
+    local name = GetCompactName(skillKey, fullName)
     local progressPercent = math.floor(progress * 100 + 0.00001)
     local missingPoints = maximum > 0 and math.max(0, maximum - current) or 0
     local bonusTotal = temporary + modifier
@@ -155,7 +188,7 @@ local function BuildRow(skillKey, data, entry, skillConfig, equippedSlots, trans
         tracker = entry.tracker,
         icon = entry.icon or STEP.Constants.FALLBACK_SKILL_ICON,
         name = name,
-        fullName = name,
+        fullName = fullName,
         current = current,
         maximum = maximum,
         temporary = temporary,
@@ -182,7 +215,7 @@ local function BuildRow(skillKey, data, entry, skillConfig, equippedSlots, trans
         transientToken = type(transientState) == "table" and transientState.token or nil,
         tooltip = {
             skillKey = skillKey,
-            name = name,
+            name = fullName,
             current = current,
             maximum = maximum,
             temporary = temporary,

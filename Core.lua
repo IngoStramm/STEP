@@ -64,6 +64,23 @@ function STEP:Initialize()
     end
 
     self.Database:StartSession()
+    if self.ActivityTracker and not self.ActivityTracker:Initialize() then
+        self.blocked = true
+        return false
+    end
+    if self.CombatTracker then
+        self.CombatTracker:Initialize()
+    end
+    if self.ProfessionTracker then
+        self.ProfessionTracker:Initialize()
+    end
+    if self.HistoryStore and not self.HistoryStore:Initialize() then
+        self.blocked = true
+        return false
+    end
+    if self.NotificationQueue then
+        self.NotificationQueue:Initialize()
+    end
     if self.EquipmentResolver then
         self.EquipmentResolver:Update("PLAYER_LOGIN")
     end
@@ -111,6 +128,9 @@ function STEP:OnEvent(event, ...)
     end
 
     if event == "PLAYER_LOGOUT" then
+        if self.ActivityTracker then
+            self.ActivityTracker:Checkpoint(event)
+        end
         if self.Database then
             self.Database:Checkpoint("PLAYER_LOGOUT")
         end
@@ -125,6 +145,9 @@ function STEP:OnEvent(event, ...)
     end
 
     if event == "COMBAT_LOG_EVENT_UNFILTERED" then
+        if self.CombatTracker then
+            self.CombatTracker:HandleCombatLog()
+        end
         if self.DebugProbe then
             self.DebugProbe:HandleCombatLog()
         end
@@ -138,10 +161,16 @@ function STEP:OnEvent(event, ...)
     end
 
     if event == "PLAYER_REGEN_DISABLED" then
+        if self.CombatTracker then
+            self.CombatTracker:SetCombatState(true)
+        end
         if self.MainPanel then
             self.MainPanel:SetCombatState(true)
         end
     elseif event == "PLAYER_REGEN_ENABLED" then
+        if self.CombatTracker then
+            self.CombatTracker:SetCombatState(false)
+        end
         if self.MainPanel then
             self.MainPanel:SetCombatState(false)
         end
@@ -165,7 +194,18 @@ function STEP:OnEvent(event, ...)
         or event == "PLAYER_LEVEL_UP" then
         self.SkillScanner:Schedule(event)
     elseif event == "PLAYER_DEAD" then
+        if self.ActivityTracker then
+            self.ActivityTracker:Checkpoint(event)
+        end
         self.Database:Checkpoint(event)
+    end
+
+    if self.ProfessionTracker then
+        if self.Constants.SPELLCAST_EVENTS[event] then
+            self.ProfessionTracker:HandleSpellcast(event, ...)
+        elseif self.Constants.PROFESSION_EVENTS[event] then
+            self.ProfessionTracker:UpdateContext(event)
+        end
     end
 
     if self.DebugProbe then

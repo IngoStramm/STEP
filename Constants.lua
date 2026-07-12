@@ -2,11 +2,15 @@ local _, STEP = ...
 
 STEP.Constants = {
     SCHEMA_VERSION = 2,
-    DEVELOPMENT_PHASE = "phase2",
+    DEVELOPMENT_PHASE = "phase3",
     SKILL_SCAN_DELAY = 0.10,
     DEBUG_EVENT_LIMIT = 120,
     DEBUG_DUMP_LIMIT = 20,
     FALLBACK_SKILL_ICON = 134400,
+    COMBAT_ACTIVITY_GRACE = 3,
+    HISTORY_EVENT_LIMIT = 2000,
+    HISTORY_SEGMENT_LIMIT = 25,
+    HISTORY_RECENT_SAMPLE_LIMIT = 10,
 }
 
 STEP.Constants.DEBUG_COMBAT_SUBEVENTS = {
@@ -36,10 +40,10 @@ STEP.Constants.CONFIG_ENUMS = {
         compact = true,
         hide = true,
     },
-    notificationMode = {
-        exaggerated = true,
-        discreet = true,
-        none = true,
+    notificationPosition = {
+        upper = true,
+        center = true,
+        lower = true,
     },
 }
 

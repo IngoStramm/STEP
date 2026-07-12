@@ -78,6 +78,7 @@ local skillLines = {}
 local skillHeaderMutationHook
 local inventory = {}
 local itemInfo = {}
+local combatLogInfo = {}
 
 DEFAULT_CHAT_FRAME = {
     AddMessage = function(_, message)
@@ -149,6 +150,14 @@ end
 
 function GetTimePreciseSec()
     return monotonicTime
+end
+
+function UnitGUID(unit)
+    return unit == "player" and "Player-1" or nil
+end
+
+function CombatLogGetCurrentEventInfo()
+    return (table.unpack or unpack)(combatLogInfo)
 end
 
 local function GetVisibleSkillLines()
@@ -304,6 +313,7 @@ local function ResetRuntime(database)
     skillHeaderMutationHook = nil
     inventory = {}
     itemInfo = {}
+    combatLogInfo = {}
 
     STEP.ready = false
     STEP.blocked = false
@@ -317,6 +327,22 @@ local function ResetRuntime(database)
     STEP.Database.db = nil
 
     STEP.ConfigStore.initialized = false
+    STEP.ActivityTracker.initialized = false
+    STEP.CombatTracker.initialized = false
+    STEP.CombatTracker.inCombat = false
+    STEP.ProfessionTracker.initialized = false
+    STEP.ProfessionTracker.tradeSkillKey = nil
+    STEP.ProfessionTracker.craftSkillKey = nil
+    STEP.ProfessionTracker.sent = {}
+    STEP.ProfessionTracker.active = {}
+    STEP.ProfessionTracker.fishingCastGUID = nil
+    STEP.NotificationQueue.initialized = false
+    STEP.NotificationQueue.queue = {}
+    STEP.NotificationQueue.current = nil
+    STEP.NotificationQueue.frame = nil
+    STEP.NotificationQueue.token = nil
+    STEP.HistoryStore.initialized = false
+    STEP.HistoryStore.tokens = {}
     STEP.EquipmentResolver.state = {}
     STEP.SkillScanner.snapshot = {}
     STEP.SkillScanner.unknown = {}
@@ -337,6 +363,15 @@ local function InitializeStores(database)
     ResetRuntime(database)
     AssertTrue(STEP.Database:Initialize())
     AssertTrue(STEP.ConfigStore:Initialize())
+end
+
+local function InitializeTracking(database)
+    InitializeStores(database)
+    STEP.Database:StartSession()
+    AssertTrue(STEP.ActivityTracker:Initialize())
+    AssertTrue(STEP.CombatTracker:Initialize())
+    AssertTrue(STEP.ProfessionTracker:Initialize())
+    AssertTrue(STEP.HistoryStore:Initialize())
 end
 
 local function Skill(name, rank, maximum, temporary, modifier)
@@ -662,15 +697,69 @@ Test("ConfigStore repairs invalid persisted values in isolation", function()
                 customField = "preserve",
             },
             notifications = {
-                gainMode = "loudest",
+                enabled = "yes",
+                scale = 9,
+                position = "diagonal",
+                sound = "missing",
+                soundChannel = "Effects",
             },
         },
     })
     AssertTrue(STEP.ConfigStore:Get("panel.shown"))
     AssertEqual(1, STEP.ConfigStore:Get("panel.scale"))
     AssertEqual("progress", STEP.ConfigStore:Get("panel.sortMode"))
-    AssertEqual("discreet", STEP.ConfigStore:Get("notifications.gainMode"))
+    AssertTrue(STEP.ConfigStore:Get("notifications.enabled"))
+    AssertEqual(1, STEP.ConfigStore:Get("notifications.scale"))
+    AssertEqual("upper", STEP.ConfigStore:Get("notifications.position"))
+    AssertEqual("none", STEP.ConfigStore:Get("notifications.sound"))
+    AssertEqual("Master", STEP.ConfigStore:Get("notifications.soundChannel"))
     AssertEqual("preserve", STEPDB.config.panel.customField)
+end)
+
+Test("SoundRegistry validates and plays native and optional sounds", function()
+    InitializeStores(nil)
+    AssertTrue(STEP.SoundRegistry:IsValid("none"))
+    AssertTrue(STEP.SoundRegistry:IsValid("wa_tada"))
+    AssertFalse(STEP.SoundRegistry:IsValid("missing"))
+    AssertFalse(STEP.SoundRegistry:Play("none", "Master"))
+
+    local originalGetAddOnInfo = C_AddOns.GetAddOnInfo
+    C_AddOns.GetAddOnInfo = function(name)
+        if name == "WeakAuras" or name == "Decursive" then
+            return name
+        end
+    end
+    local soundValues = STEP.SoundRegistry:GetValues()
+    AssertTrue(#soundValues > 100)
+    AssertTrue(STEP.SoundRegistry:IsValid("decursive_affliction"))
+    AssertTrue(STEP.SoundRegistry:IsValid("wa_voice_triangle"))
+    AssertTrue(STEP.SoundRegistry:IsValid("wa_pa_yeehaw"))
+    C_AddOns.GetAddOnInfo = originalGetAddOnInfo
+
+    local originalPlaySoundFile = PlaySoundFile
+    local originalPlaySound = PlaySound
+    local originalSoundKit = SOUNDKIT
+    local filePath, fileChannel, kitId, kitChannel
+    PlaySoundFile = function(path, channel)
+        filePath, fileChannel = path, channel
+        return true
+    end
+    PlaySound = function(id, channel)
+        kitId, kitChannel = id, channel
+        return true
+    end
+    SOUNDKIT = { RAID_WARNING = 12345 }
+
+    AssertTrue(STEP.SoundRegistry:Play("wa_tada", "SFX"))
+    AssertTrue(string.find(filePath, "WeakAuras", 1, true) ~= nil)
+    AssertEqual("SFX", fileChannel)
+    AssertTrue(STEP.SoundRegistry:Play("raid", "Dialog"))
+    AssertEqual(12345, kitId)
+    AssertEqual("Dialog", kitChannel)
+
+    PlaySoundFile = originalPlaySoundFile
+    PlaySound = originalPlaySound
+    SOUNDKIT = originalSoundKit
 end)
 
 Test("ConfigStore rejects an invalid batch atomically", function()
@@ -997,7 +1086,8 @@ Test("ViewModel first-discovery defaults and localization stay deterministic", f
         mode = "compact",
     })
     AssertEqual(1, #compact.rows)
-    AssertEqual("Machados", compact.rows[1].name)
+    AssertEqual("Machados 1M", compact.rows[1].name)
+    AssertEqual("Machados", compact.rows[1].fullName)
     AssertEqual("Pericias de combate", compact.sections[1].label)
     AssertEqual("2 pericias precisam de treino", compact.headerText)
 
@@ -1282,10 +1372,11 @@ Test("ViewModel falls back to English for enGB and unsupported locales", functio
     end
 
     local enGB = BuildForLocale("enGB")
-    AssertEqual("Axes", enGB.rows[1].name)
+    AssertEqual("1H Axes", enGB.rows[1].name)
+    AssertEqual("Axes", enGB.rows[1].fullName)
     AssertEqual("Combat Skills", enGB.sections[1].label)
     local unsupported = BuildForLocale("deDE")
-    AssertEqual("Axes", unsupported.rows[1].name)
+    AssertEqual("1H Axes", unsupported.rows[1].name)
     AssertEqual("1 skill needs training", unsupported.headerText)
 
     GetLocale = originalGetLocale
@@ -1495,6 +1586,269 @@ Test("Scanner coalesces scheduled scans and keeps the latest reason", function()
     AssertEqual(STEP.Constants.SKILL_SCAN_DELAY, timers[1].delay)
     timers[1].callback()
     AssertEqual("second", updated.reason)
+end)
+
+Test("ActivityTracker accumulates exact attempts and never bridges reload time", function()
+    InitializeTracking(nil)
+    STEP.ConfigStore:EnsureSkill("primary.mining")
+    AssertTrue(STEP.ConfigStore:SetSkill("primary.mining", "logEnabled", true))
+
+    AssertTrue(STEP.ActivityTracker:BeginAttempt("primary.mining"))
+    monotonicTime = monotonicTime + 4.5
+    AssertTrue(STEP.ActivityTracker:FinishAttempt("primary.mining"))
+    local first = STEP.ActivityTracker:Consume("primary.mining")
+    AssertEqual(4.5, first.activeSeconds)
+    AssertEqual(4.5, first.onlineSeconds)
+
+    AssertTrue(STEP.ActivityTracker:BeginAttempt("primary.mining"))
+    monotonicTime = monotonicTime + 2
+    STEP.ActivityTracker:Checkpoint("reload")
+    monotonicTime = monotonicTime + 500
+    STEP.ActivityTracker.initialized = false
+    AssertTrue(STEP.ActivityTracker:Initialize())
+    local resumed = STEP.ActivityTracker:Consume("primary.mining")
+    AssertEqual(2, resumed.activeSeconds)
+    AssertEqual(2, resumed.onlineSeconds)
+end)
+
+Test("CombatTracker maps real melee and defense pulses only while in combat", function()
+    InitializeTracking(nil)
+    STEP.ConfigStore:EnsureSkill("combat.axes")
+    STEP.ConfigStore:EnsureSkill("combat.defense")
+    AssertTrue(STEP.ConfigStore:SetSkill("combat.axes", "logEnabled", true))
+    AssertTrue(STEP.ConfigStore:SetSkill("combat.defense", "logEnabled", true))
+    AddItem(16, 1001, 2, 0, "Axe")
+    STEP.EquipmentResolver:Update("test")
+
+    combatLogInfo = { 0, "SWING_DAMAGE", false, "Player-1", "player", 0, 0, "Creature-1" }
+    STEP.CombatTracker:HandleCombatLog()
+    AssertEqual(0, STEP.ActivityTracker:Consume("combat.axes").activeSeconds)
+
+    STEP.CombatTracker:SetCombatState(true)
+    STEP.CombatTracker:HandleCombatLog()
+    monotonicTime = monotonicTime + 1.5
+    combatLogInfo = { 0, "SWING_MISSED", false, "Creature-1", "creature", 0, 0, "Player-1" }
+    STEP.CombatTracker:HandleCombatLog()
+    monotonicTime = monotonicTime + 1
+    local axe = STEP.ActivityTracker:Consume("combat.axes")
+    monotonicTime = monotonicTime + 1
+    local defense = STEP.ActivityTracker:Consume("combat.defense")
+    AssertEqual(2.5, axe.activeSeconds)
+    AssertEqual(2, defense.activeSeconds)
+end)
+
+Test("ProfessionTracker records validated mining attempts and HistoryStore records scanner gains", function()
+    InitializeTracking(nil)
+    STEP.ConfigStore:EnsureSkill("primary.mining")
+    AssertTrue(STEP.ConfigStore:SetSkill("primary.mining", "logEnabled", true))
+    SetSkillRows({ Skill("Mining", 20, 75) })
+    AssertTrue(STEP.SkillScanner:Scan("baseline", true))
+
+    STEP.ProfessionTracker:HandleSpellcast("UNIT_SPELLCAST_START", "player", "Cast-1", 2576)
+    monotonicTime = monotonicTime + 3
+    STEP.ProfessionTracker:HandleSpellcast("UNIT_SPELLCAST_SUCCEEDED", "player", "Cast-1", 2576)
+    wallTime = wallTime + 3
+    SetSkillRows({ Skill("Mining", 21, 75) })
+    AssertTrue(STEP.SkillScanner:Scan("mining-gain", false))
+
+    local events = STEP.HistoryStore:GetEvents("primary.mining")
+    AssertEqual(1, #events)
+    AssertEqual("gain", events[1].type)
+    AssertEqual(20, events[1].oldValue)
+    AssertEqual(21, events[1].newValue)
+    AssertEqual(3, events[1].activeSeconds)
+    AssertEqual(3, events[1].onlineSeconds)
+    local aggregate = STEP.HistoryStore:GetAggregate("primary.mining")
+    AssertEqual(1, aggregate.gainedPoints)
+    AssertEqual(3, aggregate.activeSeconds)
+end)
+
+Test("ProfessionTracker keeps Fishing active through its early success event", function()
+    InitializeTracking(nil)
+    STEP.ConfigStore:EnsureSkill("secondary.fishing")
+    AssertTrue(STEP.ConfigStore:SetSkill("secondary.fishing", "logEnabled", true))
+    local originalGetSpellInfo = GetSpellInfo
+    GetSpellInfo = function(spellID)
+        return spellID == 33095 and "Fishing" or nil
+    end
+
+    STEP.ProfessionTracker:HandleSpellcast("UNIT_SPELLCAST_CHANNEL_START", "player", nil, 33095)
+    monotonicTime = monotonicTime + 1
+    STEP.ProfessionTracker:HandleSpellcast("UNIT_SPELLCAST_SUCCEEDED", "player", "Cast-Fishing", 33095)
+    monotonicTime = monotonicTime + 5
+    STEP.ProfessionTracker:HandleSpellcast("UNIT_SPELLCAST_CHANNEL_STOP", "player", nil, 33095)
+    local timing = STEP.ActivityTracker:Consume("secondary.fishing")
+    AssertEqual(6, timing.activeSeconds)
+    GetSpellInfo = originalGetSpellInfo
+end)
+
+Test("HistoryStore builds session and complete summary rows", function()
+    InitializeTracking(nil)
+    STEP.ConfigStore:EnsureSkill("secondary.fishing")
+    AssertTrue(STEP.ConfigStore:SetSkill("secondary.fishing", "logEnabled", true))
+    STEP.ActivityTracker:BeginAttempt("secondary.fishing")
+    monotonicTime = monotonicTime + 4
+    STEP.ActivityTracker:FinishAttempt("secondary.fishing")
+    STEP.HistoryStore:RecordGain({
+        skillKey = "secondary.fishing",
+        current = { category = "secondary", current = 11, maximum = 75 },
+        previous = { current = 10 },
+        gainedPoints = 1,
+    })
+    local sessionRows = STEP.HistoryStore:GetSummaryRows("session")
+    AssertEqual(1, #sessionRows)
+    AssertEqual("secondary.fishing", sessionRows[1].skillKey)
+    AssertEqual(4, sessionRows[1].activeSeconds)
+    AssertEqual(10, sessionRows[1].initialValue)
+    AssertEqual(11, sessionRows[1].latestValue)
+    local allRows = STEP.HistoryStore:GetSummaryRows("all")
+    AssertEqual(1, #allRows)
+    AssertEqual(1, allRows[1].gainedPoints)
+    local events = STEP.HistoryStore:GetEventsForScope("secondary.fishing", "session")
+    AssertEqual(1, #events)
+end)
+
+Test("HistoryStore builds share lines and clears detailed history", function()
+    InitializeTracking(nil)
+    STEP.ConfigStore:EnsureSkill("secondary.fishing")
+    AssertTrue(STEP.ConfigStore:SetSkill("secondary.fishing", "logEnabled", true))
+    STEP.HistoryStore:RecordGain({
+        skillKey = "secondary.fishing",
+        current = { category = "secondary", current = 11, maximum = 75 },
+        previous = { current = 10 },
+        gainedPoints = 1,
+    })
+    local lines = STEP.HistoryStore:GetShareLines("session", "secondary.fishing")
+    AssertEqual(1, #lines)
+    AssertTrue(lines[1]:find("Fishing", 1, true) ~= nil)
+    AssertTrue(STEP.HistoryStore:Clear())
+    AssertEqual(0, #STEP.HistoryStore:GetSummaryRows("all"))
+    AssertEqual(0, #STEP.HistoryStore:GetEvents())
+end)
+
+Test("HistoryWindow routes shared summaries to the selected chat destination", function()
+    InitializeTracking(nil)
+    STEP.ConfigStore:EnsureSkill("secondary.fishing")
+    AssertTrue(STEP.ConfigStore:SetSkill("secondary.fishing", "logEnabled", true))
+    STEP.HistoryStore:RecordGain({
+        skillKey = "secondary.fishing",
+        current = { category = "secondary", current = 11, maximum = 75 },
+        previous = { current = 10 },
+        gainedPoints = 1,
+    })
+    local sent = {}
+    local originalSendChatMessage = SendChatMessage
+    SendChatMessage = function(message, channel, language, target)
+        sent[#sent + 1] = { message = message, channel = channel, language = language, target = target }
+    end
+    STEP.HistoryWindow.shareChannel = "WHISPER"
+    STEP.HistoryWindow.whisperTarget = {
+        GetText = function() return "Testfriend" end,
+    }
+    AssertTrue(STEP.HistoryWindow:Share("secondary.fishing"))
+    AssertEqual(1, #sent)
+    AssertEqual("WHISPER", sent[1].channel)
+    AssertEqual("Testfriend", sent[1].target)
+    AssertTrue(sent[1].message:find("Fishing", 1, true) ~= nil)
+    STEP.HistoryWindow.shareChannel = "SAY"
+    STEP.HistoryWindow.whisperTarget = nil
+    SendChatMessage = originalSendChatMessage
+end)
+
+Test("HistoryWindow spaces and cancels multi-line chat sharing", function()
+    InitializeTracking(nil)
+    local sent = {}
+    local originalSendChatMessage = SendChatMessage
+    SendChatMessage = function(message, channel)
+        sent[#sent + 1] = { message = message, channel = channel }
+    end
+    STEP.HistoryWindow:CancelShare()
+    AssertTrue(STEP.HistoryWindow:SendLines({ "first", "second", "third" }, "SAY"))
+    AssertEqual(1, #sent)
+    AssertEqual(1, #timers)
+    AssertEqual(0.40, timers[1].delay)
+    timers[1].callback()
+    AssertEqual(2, #sent)
+    AssertEqual(2, #timers)
+    STEP.HistoryWindow:CancelShare()
+    timers[2].callback()
+    AssertEqual(2, #sent)
+    AssertFalse(STEP.HistoryWindow.shareSending)
+    SendChatMessage = originalSendChatMessage
+end)
+
+Test("NotificationQueue honors global and individual participation", function()
+    InitializeStores(nil)
+    STEP.ConfigStore:EnsureSkill("secondary.fishing")
+    AssertTrue(STEP.ConfigStore:SetSkill("secondary.fishing", "notifyEnabled", true))
+    local originalEnsureFrame = STEP.NotificationQueue.EnsureFrame
+    STEP.NotificationQueue.EnsureFrame = function()
+        return nil
+    end
+    local change = {
+        skillKey = "secondary.fishing",
+        current = { current = 30, maximum = 75 },
+        reachedMaximum = false,
+    }
+    AssertTrue(STEP.NotificationQueue:HandleGain(change))
+    AssertEqual("secondary.fishing", STEP.NotificationQueue.queue[1].change.skillKey)
+    AssertTrue(STEP.ConfigStore:Set("notifications.enabled", false))
+    AssertFalse(STEP.NotificationQueue:HandleGain(change))
+    AssertEqual(1, #STEP.NotificationQueue.queue)
+    AssertTrue(STEP.ConfigStore:Set("notifications.enabled", true))
+    change.reachedMaximum = true
+    AssertTrue(STEP.NotificationQueue:HandleGain(change))
+    AssertTrue(STEP.NotificationQueue.queue[2].change.reachedMaximum)
+    STEP.NotificationQueue.EnsureFrame = originalEnsureFrame
+end)
+
+Test("NotificationQueue previews without requiring individual skill participation", function()
+    InitializeStores(nil)
+    STEP.SkillScanner.snapshot = {
+        ["secondary.fishing"] = {
+            learned = true,
+            current = 30,
+            maximum = 75,
+        },
+    }
+    local originalEnsureFrame = STEP.NotificationQueue.EnsureFrame
+    STEP.NotificationQueue.EnsureFrame = function()
+        return nil
+    end
+    AssertTrue(STEP.NotificationQueue:Preview(false))
+    AssertEqual("secondary.fishing", STEP.NotificationQueue.queue[1].change.skillKey)
+    AssertFalse(STEP.NotificationQueue.queue[1].change.reachedMaximum)
+    AssertTrue(STEP.NotificationQueue:Preview(true))
+    AssertTrue(STEP.NotificationQueue.queue[2].change.reachedMaximum)
+    AssertEqual(75, STEP.NotificationQueue.queue[2].change.current.current)
+    AssertTrue(STEP.ConfigStore:Set("notifications.enabled", false))
+    AssertFalse(STEP.NotificationQueue:Preview(false))
+    AssertEqual(2, #STEP.NotificationQueue.queue)
+    STEP.NotificationQueue.EnsureFrame = originalEnsureFrame
+end)
+
+Test("HistoryStore retains aggregate totals when detailed events are pruned", function()
+    InitializeTracking(nil)
+    STEP.ConfigStore:EnsureSkill("combat.axes")
+    AssertTrue(STEP.ConfigStore:SetSkill("combat.axes", "logEnabled", true))
+    local originalLimit = STEP.Constants.HISTORY_EVENT_LIMIT
+    STEP.Constants.HISTORY_EVENT_LIMIT = 2
+    for value = 1, 3 do
+        STEP.ActivityTracker:BeginAttempt("combat.axes")
+        monotonicTime = monotonicTime + 1
+        STEP.ActivityTracker:FinishAttempt("combat.axes")
+        STEP.HistoryStore:RecordGain({
+            skillKey = "combat.axes",
+            current = { category = "combat", current = value, maximum = 75 },
+            previous = { current = value - 1 },
+            gainedPoints = 1,
+            reachedMaximum = false,
+        })
+    end
+    STEP.Constants.HISTORY_EVENT_LIMIT = originalLimit
+    AssertEqual(2, #STEPDB.history.events)
+    AssertEqual(1, STEPDB.history.prunedEventCount)
+    AssertEqual(3, STEP.HistoryStore:GetAggregate("combat.axes").gainedPoints)
 end)
 
 Test("EquipmentResolver emits previous, current and changed slots", function()

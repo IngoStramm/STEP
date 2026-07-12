@@ -6,6 +6,7 @@ local function PrintHelp()
     STEP:Print(STEP:GetText("HELP_PANEL_STATE"))
     STEP:Print(STEP:GetText("HELP_PANEL_LOCK"))
     STEP:Print(STEP:GetText("HELP_CONFIG"))
+    STEP:Print(STEP:GetText("HELP_LOG"))
     STEP:Print(STEP:GetText("HELP_BULK"))
     STEP:Print(STEP:GetText("HELP_STATUS"))
     STEP:Print(STEP:GetText("HELP_SCAN"))
@@ -201,6 +202,10 @@ local function HandleSlashCommand(message)
         STEP.ConfigWindow:Open()
     elseif command == "options" then
         STEP.NativeOptions:Open()
+    elseif command == "log" then
+        if not (STEP.HistoryWindow and STEP.HistoryWindow:Open()) then
+            STEP.HistoryStore:DumpSummary()
+        end
     elseif command == "preset" then
         HandlePreset(rest)
     elseif command == "category" or command == "categoria" then

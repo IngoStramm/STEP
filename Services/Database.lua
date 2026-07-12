@@ -34,8 +34,11 @@ local defaults = {
             autoShowEquipped = false,
         },
         notifications = {
-            gainMode = "discreet",
-            maxMode = "exaggerated",
+            enabled = true,
+            scale = 1,
+            position = "upper",
+            sound = "none",
+            soundChannel = "Master",
         },
         skills = {},
         windows = {
@@ -58,6 +61,7 @@ local defaults = {
     },
     history = {
         nextEventId = 1,
+        nextSegmentId = 1,
         events = {},
         aggregates = {},
         segments = {},
@@ -161,6 +165,7 @@ function Database:Validate()
 
     local history = self.db.history
     history.nextEventId = math.max(1, NormalizeNonnegativeInteger(history.nextEventId, 1))
+    history.nextSegmentId = math.max(1, NormalizeNonnegativeInteger(history.nextSegmentId, 1))
     history.prunedEventCount = NormalizeNonnegativeInteger(history.prunedEventCount, 0)
     return true
 end
