@@ -1374,6 +1374,10 @@ A segunda rodada de configurações validou presets, ações em massa, restaura�
 padrões, paridade dos comandos, confirmação de sobrescrita e o layout final dos
 blocos de categoria. As evidências estão em `docs/PHASE2_VALIDATION_LOG.md`.
 
+A rodada final validou as duas ordenações disponíveis, a ocultação seletiva de
+perícias completas e a persistência dessa preferência após `/reload`. Com isso,
+a Fase 2 está concluída; notificações visuais e sonoras permanecem na Fase 4.
+
 ### Fase 3 — Rastreamento e histórico
 
 - atividade de combate;

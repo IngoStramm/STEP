@@ -205,8 +205,50 @@ visibilidade da perícia.
 
 Arquivos originais em `World of Warcraft/_anniversary_/Screenshots/`.
 
-## Pendências da Fase 2
+## Rodada 4 — Ordenação e ocultação de perícias completas
 
-- testes visuais das opções de ordenação e ocultação de perícias completas;
-- refinamentos visuais que surgirem nos próximos testes;
-- notificações visuais e sonoras de ganho de perícia.
+| Campo | Valor |
+| --- | --- |
+| Data | 2026-07-11 |
+| Build | `0.2.0-alpha` |
+| Idioma observado | `enUS` |
+| Classe observada | Paladino e Druida |
+| Resultado geral | Aprovado |
+
+### Ordenação
+
+No Paladino, a troca de `Lowest progress first` para `Alphabetical` atualizou
+imediatamente o painel expandido. `Two-Handed Axes` passou da última para a
+quarta posição, antes de `Two-Handed Maces` e `Two-Handed Swords`, confirmando
+que a ordenação é aplicada dentro da categoria sem alterar a visibilidade.
+
+### Ocultação de perícias completas
+
+No Druida, antes de ativar a opção, o painel exibia quatro perícias completas:
+`Enchanting`, `Engineering`, `Cooking` e `First Aid`, todas em `375/375`.
+
+Com `Hide skills at maximum` ativado, somente essas quatro linhas foram
+removidas. As armas incompletas e `Fishing 325/375` permaneceram visíveis,
+mantendo o resumo de cinco perícias que ainda precisam de treino.
+
+Após `/reload`, o painel continuou com as mesmas cinco linhas, confirmando a
+persistência da preferência por personagem.
+
+### Evidências
+
+- `WoWScrnShot_071126_235215.jpg`: ordenação por menor progresso no Paladino.
+- `WoWScrnShot_071126_235314.jpg`: ordenação alfabética aplicada no Paladino.
+- `WoWScrnShot_071126_235456.jpg`: estado inicial do Druida com quatro perícias completas visíveis.
+- `WoWScrnShot_071126_235542.jpg`: perícias completas ocultas e Fishing preservada.
+- `WoWScrnShot_071126_235642.jpg`: estado preservado após `/reload`.
+
+Arquivos originais em `World of Warcraft/_anniversary_/Screenshots/`.
+
+## Encerramento da Fase 2
+
+Painel principal, opções nativas e independentes, sincronização, presets,
+ações em massa, confirmações, ordenação e ocultação de perícias completas foram
+implementados e validados no cliente `20506`.
+
+Os próximos refinamentos visuais serão tratados conforme surgirem. As
+notificações visuais e sonoras de ganho de perícia pertencem à Fase 4.
